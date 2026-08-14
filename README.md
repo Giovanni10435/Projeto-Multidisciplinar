@@ -1,13 +1,16 @@
 # Projeto-Multidisciplinar
 
+### Tema da ODS 1: Erradicação da Pobreza
+
 Projeto Multidisciplinar do 6 semestre do Curso de Ciência da Computação.
 Disciplinas que Abranje:
 
 ### Interação Humano Computador (IHC)
 ### Laboratório de Engenharia de Software
+### Teoria dos Grafos
 
 
-Tema da ODS 1: Erradicação da Pobreza
+
 
 
 
