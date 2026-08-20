@@ -33,7 +33,7 @@ Frontend:
 Backend:
 - Java
 - Spring Boot - Desenvolvimento da API REST.
-- Spring Security - Desenvolvimento da camada de segurança
+- Spring Security - Desenvolvimento da camada de segurança.
 - PostegreSQL - Banco de dados relacional.
 
 ## Estrutura de pastas 📂:
