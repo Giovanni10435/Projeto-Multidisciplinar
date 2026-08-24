@@ -1,0 +1,10 @@
+# Arquivos compilados Java
+*.class
+
+.settings/
+bin/
+target/
+out/
+
+.idea/
+.vscode/
