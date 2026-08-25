@@ -1,13 +1,16 @@
 package GrafoLista;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 //definicao da classe de nós da lista
-class TNo{ // define uma struct (registro)
-	public	int w;  // vértice que é adjacente ao elemento da lista
+class TNo { // define uma struct (registro)
+	public int w;  // vértice que é adjacente ao elemento da lista
 	public TNo prox;
 }
 
 //definição de uma classe para armezanar um grafo
-public class TGrafo{
+public class TGrafo {
 	// atributos privados
 	private	int n; // quantidade de vértices
 	private	int m; // quantidade de arestas
@@ -44,7 +47,7 @@ public class TGrafo{
 	            return;
 	        ant = no;
 	        no = no.prox;
-	    };
+	    }
 	    // cria o novo No para guardar w
 	    novoNo = new TNo();
 	    novoNo.w = w;
@@ -102,4 +105,187 @@ public class TGrafo{
 	    }
 	    System.out.print("\n\nfim da impressao do grafo.\n");
 	}
+
+	// EX18) Método que calcula e retorna o grau de entrada de um vértice v de um grafo
+	// dirigido
+	public int inDegree(int v) {
+		// inserindo o que seria o d-(x) por ser grafo dirigido (orientado)
+		int dMinus = 0;
+
+		for (int i = 0; i < n; i++) {
+			TNo no = adj[i];
+			
+			while (no != null) {
+				if (no.w == v) {
+					dMinus += 1;
+					break;
+				}
+				no = no.prox;
+			}
+		}
+		return dMinus;
+	}
+
+	// EX19) Método que calcula e retorna o grau de saída de um vértice v de um grafo
+	// dirigido
+	public int outDegree(int v) {
+		// inserindo o que seria o d-(x) por ser grafo dirigido (orientado)
+		int dPlus = 0;
+
+		TNo no = adj[v];
+			
+		while (no != null) {
+			dPlus++;
+			no = no.prox;
+		}
+		return dPlus;
+	}
+
+	// EX20) Médoto que calcula e retorna o grau do vértice de um grafo dirigido
+	public int degree(int v) {
+		return inDegree(v) + outDegree(v); // d(v) = d-(v) + d+(v)
+	}
+
+	// EX21) Método que decide se fois grafos direcionados são iguais (considerando ordenado na lista)
+	public boolean iguais(TGrafo a, TGrafo b) {
+        // Para serem IGUAIS:
+        // V1 = V2 - Grafos devem possuir exatamente o mesmo conjunto finito de vértices
+        // A1 = A2 - Grafos devem possuir exatamente o mesmo conjunto de arcos direcionados
+
+        if (a.n == b.n && a.m == b.m) {
+            for (int i = 0; i < a.n; i++) {
+                TNo no_a = a.adj[i];
+                TNo no_b = b.adj[i];
+                while (no_a != null && no_b != null) {
+                    if (no_a.w != no_b.w) {
+                        return false;
+                    }
+                    no_a = no_a.prox;
+                    no_b = no_b.prox;
+                }
+                if (no_a != null || no_b != null) {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+	// EX21) Método que decide se fois grafos direcionados são iguais (desnconsiderando ordenado na lista)
+	// public boolean iguais(TGrafo a, TGrafo b) {
+	// 	// Para serem IGUAIS:
+	// 	// V1 = V2 - Grafos devem possuir exatamente o mesmo conjunto finito de vértices
+	// 	// A1 = A2 - Grafos devem possuir exatamente o mesmo conjunto de arcos direcionados
+
+	// 	if (a.n == b.n && a.m == b.m) {
+	// 		for (int i = 0; i < a.n; i++) {
+	// 			TNo no_a = a.adj[i];
+	// 			TNo no_b = b.adj[i];
+
+	// 			while (no_a != null) {
+	// 				boolean encontrado = false;
+	// 				while(no_b != null) {
+	// 					if(no_a.w == no_b.w) {
+	// 						encontrado = true;
+	// 						break;
+	// 					}
+	// 					no_b = no_b.prox;
+	// 				}
+	// 				if (encontrado == false) {
+	// 					return false;
+	// 				}
+	// 				no_a = no_a.prox;
+	// 				no_b = b.adj[i];
+	// 			}
+	// 		}
+	// 	} else {
+	// 		return false;
+	// 	}
+	// 	return true;
+	// }
+
+	// EX22) TODO: Método que converte o grafo armazenado em matriz de adjacência em lista de adjacência
+
+	// EX23) TODO: Método que recebe grafo armazenado em lista de adjacência e inverte a lista de todos os
+	// vértices do grafo
+
+	// EX24) Método que recebe grafo e um vértice como parâmetro e retorna 1 se vértice for uma
+	// fonte (grau de saída maior que 0 e grau de entrada igual a 0), ou 0 caso contrário.
+	public int ehFonte(TGrafo a, int v) {
+		if (a.outDegree(v) > 0 && a.inDegree(v) == 0) return 1;
+		else return 0;
+	}
+
+	// EX25) Método que receba um grafo e um vértice como parâmetro, retorna 1 se vértice for uma
+	// sorvedouro (grau de entrada maior que 0 e grau de saída igual a 0), ou 0 caso contrário.
+	public int ehSorvedouro(TGrafo a, int v) {
+		if (a.inDegree(v) > 0 && a.outDegree(v) == 0) return 1;
+		else return 0;
+	}
+
+	// EX26) Método que receba um grafo dirigido como parâmetro e retorna 1 se o grafo for simétrico
+	// e 0 caso contrário.
+	public int ehSimetrico(TGrafo a) {
+		TNo no;
+
+		for (int i = 0; i < a.n; i++) {
+			no = a.adj[i];
+			while (no != null) {
+				TNo no_2 = a.adj[no.w];
+				int encontrado = 0; // Econtrado verifica se foi encontrado simetria
+
+				while (no_2 != null) {
+					if (no_2.w == i) {
+						encontrado = 1;
+						break;
+					}
+					no_2 = no_2.prox;
+				}
+				if (encontrado == 0) return 0;
+				no = no.prox;
+			}
+		}
+		return 1;
+	}
+
+	// EX27) Método que recebe nome de arquivo com formato do professor e construa a representação
+	// da lista de adjacência do grafo
+	public static TGrafo buildGraph(String arq) {
+		try (BufferedReader br = new BufferedReader(new FileReader(arq))) {
+			String linha;
+			int contador = 0;
+			int V = 0;
+			int A = 0;
+			TGrafo grafo = null;
+
+			while ((linha = br.readLine()) != null) {
+				if (contador == 0) {
+					V = Integer.parseInt(linha); // Numero de vértices
+					grafo = new TGrafo(V);
+					contador++;
+				} else if (contador == 1) {
+					contador++; // Ignora numero de arestas já que insereA já conta numero de arestas
+				} else {
+					String[] valores = linha.split(" ");
+					int v = Integer.parseInt(valores[0]);
+					int w = Integer.parseInt(valores[1]);
+					grafo.insereA(v, w);
+				}
+			}
+
+			return grafo;
+
+		} catch (IOException e) {
+			System.out.print("Erro ao abrir o arquivo: " + e.getMessage());
+		}
+
+		return null;
+	}
+
+	// EX28) TODO: Método que permite remover um vértice do grafo (não dirigido) - Remova arestas associadas
+	// EX29) TODO: Método que permite remover um vértice do grafo (dirigido) - Remova arestas associadas
+	// EX30) TODO: Método que verifica se o grafo (dirigido ou não) é completo
+
 }
