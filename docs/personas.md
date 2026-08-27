@@ -21,10 +21,10 @@
 |---|---|
 | **Nome** |  Paulo Rodrigues |
 | **Idade** | 37 | 
-| **Ocupação** | Engenheiro | 
-| **Rotina** |  |
+| **Ocupação** | Engenheiro Civil | 
+| **Rotina** | Paulo costuma chegar ao trabalho as 8 e sai as 17. Ao chegar em casa ele geralmente pesquisa notícias no computador e depois assiste ao noticiário na Televisão e descansa um pouco com sua esposa e filha e eventualmente vai dormir por volta das 23. Aos fins de semana, gosta de pescar e de se desconectar das telas. | 
 | **Experiência com tecnologia** | Alta |
 | **Dispositivos que utiliza** | Celular e Desktop |
-| **Necessidade** |  |
-| **Objetivos** |  |
-| **Dificuldades ou Frustrações** |  |
+| **Necessidade** | Paulo sempre teve um coração muito grande, então procura ajudar, mas nem sempre sabe como ou onde. Ele ocasionalmente pesquisa abrigos e locais para se voluntariar e como ele pode ajudar com as doações, seja com dinheiro ou doações necessárias pelos próprios abrigos. |
+| **Objetivos** | Encontrar uma instituição de apoio social para ajudar com doações de utensílios ou com apoios financeiros. |
+| **Dificuldades ou Frustrações** | Paulo adoraria ajudar com mais frequência, mas nem sempre sabe onde e nem como ajudar. |
