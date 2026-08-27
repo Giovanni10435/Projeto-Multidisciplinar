@@ -1,7 +1,9 @@
-# Personas:
+# Personas e Cenários:
 
 
 ## 1°)
+
+### Persona:
 
 | Informação | Dados da Persona |
 |---|---|
@@ -15,7 +17,23 @@
 | **Objetivos** | Encontrar uma instituição de apoio social de forma fácil e prática para que possa doar e, até mesmo, se voluntariar para trabalhar aos finais de semana. |
 | **Dificuldades ou Frustrações** | Dificuldade em saber onde e o que doar para ajudar. |
 
+### Cenário:
+
+Após voltar para casa, Lúcia prepara uma xícara de café e senta-se no sofá. Por acaso, devido ao desgaste de seu dia, decide assistir à televisão em vez de ler. Durante a programação, assiste a uma reportagem que noticia o aumento do número de pessoas em situação de rua na cidade de São Paulo e sente a necessidade de, de alguma forma, ajudar.
+
+No dia seguinte, após o trabalho, Lúcia pega seu notebook e busca na internet por instituições que auxiliam pessoas em situação de rua. Entretanto, encontra dificuldades para localizar instituições próximas de sua residência e descobrir quais são as necessidades de cada uma delas. As informações de que precisava pareciam confusas e espalhadas por diversos sites.
+
+Foi então que, ao acessar a plataforma AcolheSP, conseguiu resolver esses problemas. Inicialmente, Lúcia permitiu que o sistema utilizasse sua localização. Em seguida, o sistema apresentou uma lista de instituições de apoio social próximas à sua residência e indicou suas localizações em um mapa.
+
+Lúcia selecionou uma instituição próxima e visualizou informações sobre ela, incluindo sua localização, formas de contato e uma lista de produtos que estavam sendo solicitados naquele momento. Ao perceber que a instituição necessitava de produtos de higiene e alimentos não perecíveis, Lúcia decidiu realizar uma doação.
+
+Além disso, Lúcia percebeu que a instituição também possuía oportunidades para voluntários aos finais de semana. Como tinha disponibilidade aos sábados, demonstrou interesse em participar como voluntária e realizou seu cadastro para entrar em contato com a instituição.
+
+Ao final, Lúcia conseguiu encontrar uma instituição confiável, compreender suas necessidades e escolher, de forma prática, como contribuir.
+
 ## 2°)
+
+### Persona:
 
 | Informação | Dados da Persona |
 |---|---|
@@ -28,3 +46,5 @@
 | **Necessidade** | Paulo sempre teve um coração muito grande, então procura ajudar, mas nem sempre sabe como ou onde. Ele ocasionalmente pesquisa abrigos e locais para se voluntariar e como ele pode ajudar com as doações, seja com dinheiro ou doações necessárias pelos próprios abrigos. |
 | **Objetivos** | Encontrar uma instituição de apoio social para ajudar com doações de utensílios ou com apoios financeiros. |
 | **Dificuldades ou Frustrações** | Paulo adoraria ajudar com mais frequência, mas nem sempre sabe onde e nem como ajudar. |
+
+### Cenário:
