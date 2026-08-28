@@ -1,0 +1,40 @@
+@startuml
+left to right direction
+
+actor "Pessoa interessada\nem ajudar" as Pessoa
+actor "Administrador\ndo abrigo" as Admin
+
+rectangle "AcolheSP" {
+
+    usecase "Consultar locais\nde assistência" as UC01
+    usecase "Visualizar informações\ndo abrigo" as UC02
+    usecase "Localizar abrigo\nno mapa" as UC03
+    usecase "Consultar\nnecessidades" as UC04
+    usecase "Realizar\ndoação" as UC05
+    usecase "Demonstrar interesse\nem voluntariado" as UC06
+
+    usecase "Cadastrar abrigo" as UC07
+    usecase "Atualizar informações\ndo abrigo" as UC08
+    usecase "Cadastrar necessidade" as UC09
+    usecase "Atualizar necessidade" as UC10
+    usecase "Gerenciar solicitações\nde produtos" as UC11
+}
+
+Pessoa --> UC01
+Pessoa --> UC02
+Pessoa --> UC03
+Pessoa --> UC04
+Pessoa --> UC05
+Pessoa --> UC06
+
+Admin --> UC07
+Admin --> UC08
+Admin --> UC09
+Admin --> UC10
+Admin --> UC11
+
+UC01 .> UC03 : <<include>>
+UC01 .> UC02 : <<include>>
+UC02 .> UC04 : <<include>>
+
+@enduml
