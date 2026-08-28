@@ -48,3 +48,13 @@ Ao final, Lúcia conseguiu encontrar uma instituição confiável, compreender s
 | **Dificuldades ou Frustrações** | Paulo adoraria ajudar com mais frequência, mas nem sempre sabe onde e nem como ajudar. |
 
 ### Cenário:
+
+Paulo chega em casa após um dia de trabalho e, como de costume, utiliza seu computador para acompanhar as principais notícias do dia. Durante sua pesquisa, depara-se com uma notícia sobre uma instituição de apoio social que enfrenta dificuldades para manter suas atividades devido à falta de recursos financeiros e de voluntários. Sensibilizado pela situação, Paulo decide pesquisar mais sobre a instituição e verificar de que maneira poderia contribuir.
+
+Entretanto, ao procurar informações na internet, Paulo encontra dificuldades para descobrir quais são as necessidades atuais da instituição, como poderia realizar uma doação e quais horários estavam disponíveis para a realização de trabalhos voluntários. As informações encontradas estavam espalhadas por diferentes páginas e não eram suficientemente claras para que pudesse tomar uma decisão.
+
+Foi então que Paulo encontrou a plataforma AcolheSP e decidiu utilizá-la para obter informações mais precisas. Inicialmente, permitiu que o sistema utilizasse sua localização para encontrar instituições próximas à sua residência. Em seguida, o sistema apresentou uma lista de instituições de apoio social próximas e suas respectivas localizações.
+
+Paulo selecionou a instituição que havia visto na notícia e visualizou informações sobre ela, incluindo sua localização, formas de contato, necessidades atuais e as diferentes maneiras pelas quais poderia contribuir. Entre as opções disponíveis, encontrou solicitações de apoio financeiro e oportunidades para trabalhos voluntários durante a semana, no período da tarde e da noite, além de atividades aos finais de semana durante o dia.
+
+Ao perceber que seus horários eram compatíveis com algumas das oportunidades oferecidas, Paulo decidiu contribuir de forma mais frequente. Para isso, passou a se organizar para entrar mais cedo no trabalho e sair mais cedo em determinados dias, permitindo que pudesse prestar serviços voluntários no período da tarde ou da noite.
