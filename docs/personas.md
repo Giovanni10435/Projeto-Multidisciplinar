@@ -58,3 +58,7 @@ Foi então que Paulo encontrou a plataforma AcolheSP e decidiu utilizá-la para 
 Paulo selecionou a instituição que havia visto na notícia e visualizou informações sobre ela, incluindo sua localização, formas de contato, necessidades atuais e as diferentes maneiras pelas quais poderia contribuir. Entre as opções disponíveis, encontrou solicitações de apoio financeiro e oportunidades para trabalhos voluntários durante a semana, no período da tarde e da noite, além de atividades aos finais de semana durante o dia.
 
 Ao perceber que seus horários eram compatíveis com algumas das oportunidades oferecidas, Paulo decidiu contribuir de forma mais frequente. Para isso, passou a se organizar para entrar mais cedo no trabalho e sair mais cedo em determinados dias, permitindo que pudesse prestar serviços voluntários no período da tarde ou da noite.
+
+Dessa forma, Paulo conseguiu estabelecer uma rotina de voluntariado de aproximadamente duas a três vezes por mês, além de poder realizar contribuições financeiras quando possível. A plataforma AcolheSP tornou mais simples o processo de encontrar uma instituição próxima, conhecer suas necessidades e identificar oportunidades de contribuição compatíveis com sua disponibilidade.
+
+Ao final, Paulo conseguiu transformar sua intenção de ajudar em uma participação prática e recorrente, encontrando uma maneira de contribuir com a instituição sem comprometer significativamente sua rotina profissional e familiar.
