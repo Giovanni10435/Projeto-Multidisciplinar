@@ -7,12 +7,12 @@ public class TGrafo {
 	private	int m; // quantidade de arestas
 	private	int adj[][]; //matriz de adjacência
 	// Métodos Públicos
-	public TGrafo( int n) {  // construtor
+	public TGrafo(int n) {  // construtor
 	    this.n = n;
 	    // No início dos tempos não há arestas
 	    this.m = 0; 
 	    // alocação da matriz do TGrafo
-	    this.adj = new int [n][n];
+	    this.adj = new int[n][n];
 
 	    // Inicia a matriz com zeros
 		for(int i = 0; i< n; i++)
@@ -51,6 +51,52 @@ public class TGrafo {
 	            	System.out.print("Adj[" + i + "," + w + "]= 1" + " ");
 	            else System.out.print("Adj[" + i + "," + w + "]= 0" + " ");
 	    }
-	    System.out.println("\n\nfim da impressao do grafo." );
+	    System.out.println("\n\nfim da impressao do grafo direcionado." );
 	}
+
+	// Ex 1)
+	public int inDegree(int v) {
+		int grau = 0;
+
+		for (int i = 0; i < n; i++) {
+			if (adj[i][v] == 1) {
+				grau++;
+			}
+		}
+		return grau;
+	}
+
+	// Ex 2)
+	public int outDegree(int v) {
+		int grau = 0;
+
+		for (int i = 0; i < n; i++) {
+			if (adj[v][i] == 1) {
+				grau++;
+			}
+		}
+		return grau;
+	}
+
+	// Ex 3)
+	public int Degree(int v) {
+		return inDegree(v) + outDegree(v);
+	}
+
+	// Ex 4)
+	public int fonte(int v) {
+		if (outDegree(v) > 0 && inDegree(v) == 0) {
+			return 1;
+		}
+		return 0;
+	}
+
+	// Ex 5)
+	public int sorvedouro(int v) {
+		if (inDegree(v) > 0 && outDegree(v) == 0) {
+			return 1;
+		}
+		return 0;
+	}
+
 }
