@@ -60,3 +60,35 @@ Paulo então selecionou a instituição que havia visto na notícia e visualizou
 Ao perceber que os horários eram compatíveis com algumas das oportunidades oferecidas, Paulo decidiu contribuir de forma amais frequente. Para isso, ele adaptou seus horários no trabalho para poder fazer trabalho voluntário mais frequentemente, sendo capaz de visitar a instituição e prestar serviços de duas a três vezes por mês.
 
 Ao final, Paulo conseguiu encontrar a instituição e suas necessidades a partir da plataforma do AcolheSP, assim como a localização dos abrigos disponíveis para suporte.
+
+## 3°)
+
+### Persona:
+
+| Informação| Dados da Persona |
+| ------- | ------- |
+| **Nome** | Dona Maria de Fátima |
+| **Idade** | 68 |
+| **Ocupação** | Responsável por um abrigo comunitário |
+| **Rotina** | Todos os dias, Maria dedica grande parte do seu tempo à administração do abrigo, organizando os alimentos, produtos de higiene, roupas e outros itens necessários para atender às pessoas acolhidas. Também é responsável por entrar em contato com voluntários e buscar doações para manter o funcionamento do abrigo. |
+| **Experiência com tecnologia** | Baixa |
+| **Dispositivos que utiliza** | Celular e Desktop |
+| **Necessidade** | Maria precisa encontrar pessoas dispostas a realizar doações e ajudar o abrigo, porém não sabe onde ou como divulgar os produtos que estão em falta. Além disso, possui pouca experiência com tecnologia e encontra dificuldades ao utilizar plataformas digitais que possuem muitas informações ou processos complexos. |
+| **Objetivos** | Divulgar as necessidades do abrigo de forma fácil e prática para encontrar pessoas que possam realizar doações e se voluntariar para ajudar a instituição.|
+| **Dificuldades ou Frustrações** | Dificuldade em utilizar ferramentas tecnológicas e em encontrar locais onde possa divulgar as necessidades do abrigo e solicitar doações.|
+
+### Cenário:
+
+Durante a manhã, Maria de Fátima, responsável por um pequeno abrigo comunitário, percebe que alguns produtos importantes estão acabando. Entre eles, estão alimentos não perecíveis, produtos de higiene e materiais de limpeza.
+
+Maria costuma conseguir doações por meio de conhecidos e pessoas que já ajudam o abrigo, mas percebe que essa forma de divulgação é limitada. Ela gostaria de encontrar novas pessoas dispostas a contribuir, porém não sabe onde divulgar os produtos que o abrigo necessita e possui pouca familiaridade com ferramentas digitais.
+
+Ao conversar com uma voluntária, Maria conhece a plataforma AcolheSP. Com sua ajuda, acessa o site e realiza o cadastro do abrigo. Como possui pouca experiência com tecnologia, encontra uma interface simples, com instruções claras e poucos campos para preencher.
+
+Após concluir o cadastro, Maria acessa a área destinada ao abrigo e seleciona a opção para cadastrar uma nova necessidade. Ela informa que o abrigo está precisando de alimentos não perecíveis, produtos de higiene e materiais de limpeza, indicando também a quantidade necessária de cada item.
+
+Depois de publicar as necessidades, Maria consegue visualizar os pedidos cadastrados na plataforma. Quando uma pessoa entra em contato para realizar uma doação, Maria combina a entrega dos produtos. Após receber a doação, ela acessa a plataforma e confirma que a necessidade foi atendida, fazendo com que o pedido seja removido da lista de necessidades disponíveis.
+
+Além disso, Maria percebe que a instituição também pode divulgar oportunidades para voluntários. Como o abrigo precisa de ajuda aos finais de semana, ela cadastra uma oportunidade informando os dias e horários em que necessita de voluntários.
+
+Alguns dias depois, Maria recebe o contato de pessoas interessadas em realizar doações e de voluntários que desejam ajudar no abrigo. Dessa forma, mesmo possuindo pouca experiência com tecnologia, consegue divulgar as necessidades da instituição e ampliar sua rede de apoio por meio da plataforma AcolheSP.
