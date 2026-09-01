@@ -87,4 +87,88 @@ public class TGrafoND {
 	public int Degree(int v) {
 		return inDegree(v) + outDegree(v);
 	}
+
+	// Ex 11)
+	public void removeVertice(int v) {
+		int novoN = n - 1;
+		int novaAdj[][] = new int[novoN][novoN];
+		int novoM = 0;
+
+		int linhaAtual = 0;
+		for (int i = 0; i < n; i++) {
+			if (i == v) continue; // pula a linha do vértice removido
+			int colunaAtual = 0;
+			for (int j = 0; j < n; j++) {
+				if (j == v) continue; // pula a coluna do vértice removido
+				novaAdj[linhaAtual][colunaAtual] = adj[i][j];
+				if (adj[i][j] == 1) novoM++;
+				colunaAtual++;
+			}
+			linhaAtual++;
+		}
+
+		this.n = novoN;
+		this.m = novoM;
+		this.adj = novaAdj;
+	}
+
+	// Ex 12)
+	public boolean isCompleto() {
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (i == j) continue; // ignora a diagonal (vértice não tem aresta com ele mesmo)
+				if (adj[i][j] == 0) {
+					return false; // achou um par de vértices SEM aresta - não é completo
+				}
+			}
+		}
+		return true; // percorreu tudo e não achou nenhum par faltando - é completo
+	}
+
+	// Ex 14)
+	public TGrafoND complemento() {
+		TGrafoND g = new TGrafoND(n); // grafo novo, mesmo tamanho, começa vazio
+
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (i == j) continue; // nunca cria laço
+				if (adj[i][j] == 0) {
+					g.insereA(i, j); // não tinha aresta aqui -> no complemento, tem
+				}
+			}
+		}
+		return g;
+	}
+
+	// Ex 15)
+	public int conexidade() {
+		boolean[] visitado = new boolean[n];
+		Pilha pilha = new Pilha(n);
+
+		// começa a busca pelo vértice 0
+		pilha.push(0);
+
+		while (!pilha.isEmpty()) {
+			int atual = pilha.pop();
+
+			if (!visitado[atual]) {
+				visitado[atual] = true;
+
+				// empilha todos os vizinhos ainda não visitados
+				for (int w = 0; w < n; w++) {
+					if (adj[atual][w] == 1 && !visitado[w]) {
+						pilha.push(w);
+					}
+				}
+			}
+		}
+
+		// confere se sobrou algum vértice não visitado
+		for (int i = 0; i < n; i++) {
+			if (!visitado[i]) {
+				return 1; // achou um vértice inalcançável - desconexo
+			}
+		}
+		return 0; // visitou todo mundo - conexo
+	}
 }

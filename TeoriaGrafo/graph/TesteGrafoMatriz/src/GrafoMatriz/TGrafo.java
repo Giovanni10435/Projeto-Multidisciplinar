@@ -99,4 +99,152 @@ public class TGrafo {
 		return 0;
 	}
 
+	// Ex 13)
+	public boolean isCompleto() {
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (i == j) continue; // ignora a diagonal
+				if (adj[i][j] == 0) {
+					return false; // falta a aresta i -> j
+				}
+			}
+		}
+		return true;
+	}
+
+	// Ex 14)
+	public TGrafo complemento() {
+		TGrafo g = new TGrafo(n);
+
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (i == j) continue;
+				if (adj[i][j] == 0) {
+					g.insereA(i, j);
+				}
+			}
+		}
+		return g;
+	}
+
+	// Ex 16)
+	public int conexidade() {
+		if (isFortementeConexo()) return 3;
+		if (isUnilateralmenteConexo()) return 2;
+		if (isFracamenteConexo()) return 1;
+		return 0;
+	}
+
+	// DFS genérica usando a Pilha. "inverso" = true percorre as arestas ao contrário (chegando em vez de saindo)
+	private boolean[] dfs(int origem, boolean inverso) {
+		boolean[] visitado = new boolean[n];
+		Pilha pilha = new Pilha(n);
+		pilha.push(origem);
+
+		while (!pilha.isEmpty()) {
+			int atual = pilha.pop();
+			if (!visitado[atual]) {
+				visitado[atual] = true;
+				for (int w = 0; w < n; w++) {
+					int existeAresta = inverso ? adj[w][atual] : adj[atual][w];
+					if (existeAresta == 1 && !visitado[w]) {
+						pilha.push(w);
+					}
+				}
+			}
+		}
+		return visitado;
+	}
+
+	private boolean todosVisitados(boolean[] visitado) {
+		for (boolean v : visitado) {
+			if (!v) return false;
+		}
+		return true;
+	}
+
+	// C3: de 0 alcança todo mundo (indo) E todo mundo alcança 0 (voltando)
+	private boolean isFortementeConexo() {
+		return todosVisitados(dfs(0, false)) && todosVisitados(dfs(0, true));
+	}
+
+	// C1: ignorando o sentido das setas, dá pra alcançar todo mundo a partir de 0
+	private boolean isFracamenteConexo() {
+		boolean[] visitado = new boolean[n];
+		Pilha pilha = new Pilha(n);
+		pilha.push(0);
+
+		while (!pilha.isEmpty()) {
+			int atual = pilha.pop();
+			if (!visitado[atual]) {
+				visitado[atual] = true;
+				for (int w = 0; w < n; w++) {
+					if ((adj[atual][w] == 1 || adj[w][atual] == 1) && !visitado[w]) {
+						pilha.push(w);
+					}
+				}
+			}
+		}
+		return todosVisitados(visitado);
+	}
+
+	// C2: para todo par (i, j), existe caminho i->j OU j->i
+	private boolean isUnilateralmenteConexo() {
+		boolean[][] alcanca = new boolean[n][n];
+		for (int i = 0; i < n; i++) {
+			alcanca[i] = dfs(i, false); // quem o vértice i consegue alcançar
+		}
+
+		for (int i = 0; i < n; i++) {
+			for (int j = i + 1; j < n; j++) {
+				if (!alcanca[i][j] && !alcanca[j][i]) {
+					return false; // nenhum dos dois alcança o outro - falha
+				}
+			}
+		}
+		return true;
+	}
+
+
+	// Ex 17)
+	public TGrafo grafoReduzido() {
+		// descobre quem alcança quem (mesma ideia do Ex 16)
+		boolean[][] alcanca = new boolean[n][n];
+		for (int i = 0; i < n; i++) {
+			alcanca[i] = dfs(i, false);
+		}
+
+		// agrupa vértices na mesma componente fortemente conexa:
+		// i e j estão no mesmo grupo se i alcança j E j alcança i
+		int[] grupo = new int[n];
+		java.util.Arrays.fill(grupo, -1);
+		int totalGrupos = 0;
+
+		for (int i = 0; i < n; i++) {
+			if (grupo[i] == -1) {
+				grupo[i] = totalGrupos;
+				for (int j = i + 1; j < n; j++) {
+					if (grupo[j] == -1 && alcanca[i][j] && alcanca[j][i]) {
+						grupo[j] = totalGrupos;
+					}
+				}
+				totalGrupos++;
+			}
+		}
+
+		//monta o grafo reduzido: um vértice por grupo
+		TGrafo reduzido = new TGrafo(totalGrupos);
+
+		//para cada aresta original entre grupos DIFERENTES, cria aresta no reduzido
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (adj[i][j] == 1 && grupo[i] != grupo[j]) {
+					reduzido.insereA(grupo[i], grupo[j]);
+				}
+			}
+		}
+
+		return reduzido;
+	}
+
 }
