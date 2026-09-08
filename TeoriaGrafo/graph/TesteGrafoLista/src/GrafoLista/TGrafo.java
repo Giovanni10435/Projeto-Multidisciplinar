@@ -206,7 +206,19 @@ public class TGrafo {
 	// 	return true;
 	// }
 
-	// EX22) TODO: Método que converte o grafo armazenado em matriz de adjacência em lista de adjacência
+	// EX22) Método que converte o grafo armazenado em matriz de adjacência em lista de adjacência
+	// public void matriceToList(GrafoMatriz.TGrafo a) {
+	// 	int tam = a.adj.length;
+
+	// 	for (int i = 0; i < tam; i++) {
+	// 		for (int j = 0; j < tam; j++) {
+	// 			if (a.adj[i][j] == 1) { // Ta dando erro porque a matriz é private, ver se precisaria ser public
+	// 				insereA(i, j);
+	// 				j++;
+	// 			}
+	// 		}	
+	// 	}
+	// }
 
 	// EX23) TODO: Método que recebe grafo armazenado em lista de adjacência e inverte a lista de todos os
 	// vértices do grafo
