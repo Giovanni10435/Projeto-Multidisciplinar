@@ -142,6 +142,30 @@ public class TesteGrafoLista {
 
         System.out.println("g4 é simétrico? " + g4.ehSimetrico(g4));
 
+        // =====================================================
+        // TESTE DO inverteLista
+        // =====================================================
+        System.out.println("\nTeste inverteLista:");
+
+        TGrafo g6 = new TGrafo(4);
+
+        g6.insereA(0,1);
+        g6.insereA(0,2);
+        g6.insereA(0,3);
+
+        g6.insereA(1,3);
+
+        g6.insereA(2,1);
+        g6.insereA(2,3);
+
+        System.out.println("Grafo antes de inverter:");
+        g6.show();
+
+        g6.inverteLista(g6);
+
+        System.out.println("Grafo depois de inverter:");
+        g6.show();
+
 
         // =====================================================
         // TESTE DO buildGraph
