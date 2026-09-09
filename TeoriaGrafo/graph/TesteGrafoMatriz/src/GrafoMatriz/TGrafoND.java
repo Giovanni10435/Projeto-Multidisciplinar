@@ -96,15 +96,22 @@ public class TGrafoND {
 
 		int linhaAtual = 0;
 		for (int i = 0; i < n; i++) {
-			if (i == v) continue; // pula a linha do vértice removido
+			if (i == v) continue;
 			int colunaAtual = 0;
 			for (int j = 0; j < n; j++) {
-				if (j == v) continue; // pula a coluna do vértice removido
+				if (j == v) continue;
 				novaAdj[linhaAtual][colunaAtual] = adj[i][j];
-				if (adj[i][j] == 1) novoM++;
 				colunaAtual++;
 			}
 			linhaAtual++;
+		}
+
+		// conta arestas certo: percorre só metade da matriz (acima da diagonal),
+		// já que cada aresta não-dirigida aparece em 2 células simétricas
+		for (int i = 0; i < novoN; i++) {
+			for (int j = i + 1; j < novoN; j++) {
+				if (novaAdj[i][j] == 1) novoM++;
+			}
 		}
 
 		this.n = novoN;
@@ -112,6 +119,8 @@ public class TGrafoND {
 		this.adj = novaAdj;
 	}
 
+
+	
 	// Ex 12)
 	public boolean isCompleto() {
 		for (int i = 0; i < n; i++) {
@@ -143,32 +152,21 @@ public class TGrafoND {
 	// Ex 15)
 	public int conexidade() {
 		boolean[] visitado = new boolean[n];
-		Pilha pilha = new Pilha(n);
+		dfs(0, visitado);
 
-		// começa a busca pelo vértice 0
-		pilha.push(0);
-
-		while (!pilha.isEmpty()) {
-			int atual = pilha.pop();
-
-			if (!visitado[atual]) {
-				visitado[atual] = true;
-
-				// empilha todos os vizinhos ainda não visitados
-				for (int w = 0; w < n; w++) {
-					if (adj[atual][w] == 1 && !visitado[w]) {
-						pilha.push(w);
-					}
-				}
-			}
-		}
-
-		// confere se sobrou algum vértice não visitado
 		for (int i = 0; i < n; i++) {
-			if (!visitado[i]) {
-				return 1; // achou um vértice inalcançável - desconexo
+			if (!visitado[i]) return 1; // desconexo
+		}
+		return 0; // conexo
+	}
+
+	private void dfs(int atual, boolean[] visitado) {
+		visitado[atual] = true;
+		for (int w = 0; w < n; w++) {
+			if (adj[atual][w] == 1 && !visitado[w]) {
+				dfs(w, visitado);
 			}
 		}
-		return 0; // visitou todo mundo - conexo
 	}
+
 }

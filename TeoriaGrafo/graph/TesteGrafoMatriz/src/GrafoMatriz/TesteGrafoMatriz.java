@@ -50,5 +50,43 @@ public class TesteGrafoMatriz {
 		System.out.println("Grau de saída do Vértice 1: " + gND.outDegree(1) + "\n");
 		
 		System.out.println("Grau total do Vértice 1: " + gND.Degree(1) + "\n");
-	}
+	
+
+			// =====test 11 a 17 =====
+
+		// Ex 12 - completo? (não-dirigido)
+		System.out.println("\n--- Ex 12/13: completo ---");
+		System.out.println("gND é completo? " + gND.isCompleto());
+		System.out.println("gD é completo? " + gD.isCompleto());
+
+		// Ex 14 - complemento
+		System.out.println("\n--- Ex 14: complemento ---");
+		TGrafoND compND = gND.complemento();
+		compND.show();
+		TGrafo compD = gD.complemento();
+		compD.show();
+
+		// Ex 15 - conexidade não-dirigida
+		System.out.println("\n--- Ex 15: conexidade (ND) ---");
+		System.out.println("Resultado (0=conexo, 1=desconexo): " + gND.conexidade());
+
+		// Ex 16 - conexidade dirigida
+		System.out.println("\n--- Ex 16: conexidade (D) ---");
+		System.out.println("Categoria (0..3): " + gD.conexidade());
+
+		// Ex 17 - grafo reduzido
+		System.out.println("\n--- Ex 17: grafo reduzido ---");
+		TGrafo reduzido = gD.grafoReduzido();
+		reduzido.show();
+
+		// Ex 11 - remove vértice (por último, porque muda o grafo)
+		System.out.println("\n--- Ex 11: remove vértice ---");
+		gD.removeVertice(2);
+		System.out.println("gD depois de remover vértice 2:");
+		gD.show();
+
+		gND.removeVertice(2);
+		System.out.println("gND depois de remover vértice 2:");
+		gND.show();
+  }
 }
