@@ -1,18 +1,23 @@
 package GrafoMatriz;
 
 public class TesteGrafoMatriz {
-	public static void main(String args[]) {
+	public static void main(String args[]) throws Exception {
 		//  chama o construtor para criar um grafo 4x4
 		TGrafo gD = new TGrafo(4);
 		TGrafoND gND = new TGrafoND(4);
 		//insere as arestas do grafo
 		//A={(0,1),(0,2),(2,1),(2,3),(1,3)}
 		
-		gD.insereA(0,1);
-		gD.insereA(0,2);
-		gD.insereA(2,1);
-		gD.insereA(2,3);
-		gD.insereA(1,3);
+		// Atualização do Ex 6)
+		// O grafo é Valorado / Ponderado
+		gD.insereA(0,1,5.5f);
+		gD.insereA(1,0,5.5f);
+		gD.insereA(0,2,2.0f);
+		gD.insereA(2,0,2.0f);
+		gD.insereA(2,1,3.2f);
+		gD.insereA(1,2,3.2f);
+		gD.insereA(1,3,7.0f);
+		gD.insereA(3,1,7.0f);
 		// mostra o grafo direcionado preenchido
 		gD.show();
 
@@ -23,18 +28,32 @@ public class TesteGrafoMatriz {
 		// Ex 3)
 		System.out.println("Grau total do Vértice 1: " + gD.Degree(1) + "\n");
 
+		// Ex 4)
 		if (gD.fonte(1) == 1) {
 			System.out.println("O Vértice é uma fonte!\n");
 		} else {
 			System.out.println("O Vértice não é uma fonte!\n");
 		}
 
+		// Ex 5)
 		if (gD.sorvedouro(1) == 1) {
 			System.out.println("O Vértice é sorvedouro!\n");
 		} else {
 			System.out.println("O Vértice não é sorvedouro!\n");
 		}
 		
+		// Ex 6)
+		if (gD.is_Simetrico() == 1) {
+			System.out.println("O grafo é simétrico!\n");
+		} else {
+			System.out.println("O grafo não é simétrico!\n");
+		}
+
+		// Ex 7)
+
+		System.out.println("\n--- Ex 7: leitura do arquivo ---");
+		TGrafo gArquivo = TGrafo.lerArquivo("grafo.txt");
+		gArquivo.show();
 
 		gND.insereA(0,1);
 		gND.insereA(0,2);

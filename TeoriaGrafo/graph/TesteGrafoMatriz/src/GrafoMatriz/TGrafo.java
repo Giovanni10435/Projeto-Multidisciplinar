@@ -5,27 +5,29 @@ public class TGrafo {
 	// Atributos Privados
 	private	int n; // quantidade de vértices
 	private	int m; // quantidade de arestas
-	private	int adj[][]; //matriz de adjacência
+	private	float adj[][]; //matriz de adjacência
 	// Métodos Públicos
 	public TGrafo(int n) {  // construtor
 	    this.n = n;
 	    // No início dos tempos não há arestas
 	    this.m = 0; 
 	    // alocação da matriz do TGrafo
-	    this.adj = new int[n][n];
+	    this.adj = new float[n][n];
 
-	    // Inicia a matriz com zeros
-		for(int i = 0; i< n; i++)
-			for(int j = 0; j< n; j++)
-				this.adj[i][j]=0;	
+		// Inicializa todas as posições com infinito
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                this.adj[i][j] = Float.POSITIVE_INFINITY;
+            }
+		}
 	}
 
 	// Insere uma aresta no Grafo tal que
 	// v é adjacente a w
-	public void insereA(int v, int w) {
+	public void insereA(int v, int w, float valor) {
 	    // testa se nao temos a aresta
-	    if(adj[v][w] == 0 ){
-	        adj[v][w] = 1;
+	    if(adj[v][w] == Float.POSITIVE_INFINITY){
+	        adj[v][w] = valor;
 	        m++; // atualiza qtd arestas
 	    }
 	}
@@ -33,8 +35,8 @@ public class TGrafo {
 	// remove uma aresta v->w do Grafo	
 	public void removeA(int v, int w) {
 	    // testa se temos a aresta
-	    if(adj[v][w] == 1 ){
-	        adj[v][w] = 0;
+	    if(adj[v][w] != Float.POSITIVE_INFINITY){
+	        adj[v][w] = Float.POSITIVE_INFINITY;
 	        m--; // atualiza qtd arestas
 	    }
 	}
@@ -44,12 +46,12 @@ public class TGrafo {
 	public void show() {
 	    System.out.println("n: " + n );
 	    System.out.println("m: " + m );
-	    for( int i=0; i < n; i++){
+	    for(int i=0; i < n; i++){
 	    	System.out.print("\n");
-	        for( int w=0; w < n; w++)
-	            if(adj[i][w] == 1)
-	            	System.out.print("Adj[" + i + "," + w + "]= 1" + " ");
-	            else System.out.print("Adj[" + i + "," + w + "]= 0" + " ");
+	        for(int w=0; w < n; w++)
+	            if(adj[i][w] != Float.POSITIVE_INFINITY)
+	            	System.out.print("Adj[" + i + "," + w + "]= " + adj[i][w] + " ");
+	            else System.out.print("Adj[" + i + "," + w + "]= INF ");
 	    }
 	    System.out.println("\n\nfim da impressao do grafo direcionado." );
 	}
@@ -59,7 +61,7 @@ public class TGrafo {
 		int grau = 0;
 
 		for (int i = 0; i < n; i++) {
-			if (adj[i][v] == 1) {
+			if (adj[i][v] != Float.POSITIVE_INFINITY) {
 				grau++;
 			}
 		}
@@ -71,7 +73,7 @@ public class TGrafo {
 		int grau = 0;
 
 		for (int i = 0; i < n; i++) {
-			if (adj[v][i] == 1) {
+			if (adj[v][i] != Float.POSITIVE_INFINITY) {
 				grau++;
 			}
 		}
@@ -99,36 +101,67 @@ public class TGrafo {
 		return 0;
 	}
 
-	// Ex 11)
-	public void removeVertice(int v) {
-		int novoN = n - 1;
-		int novaAdj[][] = new int[novoN][novoN];
-		int novoM = 0;
 
-		int linhaAtual = 0;
+	// Ex 6)
+	public int is_Simetrico() {
 		for (int i = 0; i < n; i++) {
-			if (i == v) continue;
-			int colunaAtual = 0;
-			for (int j = 0; j < n; j++) {
-				if (j == v) continue;
-				novaAdj[linhaAtual][colunaAtual] = adj[i][j];
-				if (adj[i][j] == 1) novoM++;
-				colunaAtual++;
+			for (int j = 0; j < n; j++){
+				if(adj[i][j] != adj[j][i]) {
+					return 0;
+				} 
 			}
-			linhaAtual++;
 		}
-
-		this.n = novoN;
-		this.m = novoM;
-		this.adj = novaAdj;
+		return 1;
 	}
 
+	// Ex 7)
+
+public static TGrafo lerArquivo(String nomeArquivo) throws Exception {
+    java.util.Scanner entrada = new java.util.Scanner(new java.io.File(nomeArquivo));
+
+    int n = entrada.nextInt();
+    int quantidadeArestas = entrada.nextInt();
+
+    TGrafo g = new TGrafo(n);
+
+    for (int i = 0; i < quantidadeArestas; i++) {
+        int v = entrada.nextInt();
+        int w = entrada.nextInt();
+        g.insereA(v, w, 1.0f);
+    }
+    entrada.close();
+    return g;
+}
+
+	// Ex 11)
+
+public void removeVertice(int v) {
+    int novoN = n - 1;
+    float novaAdj[][] = new float[novoN][novoN];
+    int novoM = 0;
+    int linhaAtual = 0;
+    for (int i = 0; i < n; i++) {
+        if (i == v) continue;
+        int colunaAtual = 0;
+
+        for (int j = 0; j < n; j++) {
+            if (j == v) continue;
+            novaAdj[linhaAtual][colunaAtual] = adj[i][j];
+            if (adj[i][j] != Float.POSITIVE_INFINITY) novoM++;
+            colunaAtual++;
+        }
+        linhaAtual++;
+    }
+    this.n = novoN;
+    this.m = novoM;
+    this.adj = novaAdj;
+}
 	// Ex 13)
 	public boolean isCompleto() {
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				if (i == j) continue; // ignora a diagonal
-				if (adj[i][j] == 0) {
+				if (adj[i][j] == Float.POSITIVE_INFINITY) {
 					return false; // falta a aresta i -> j
 				}
 			}
@@ -143,8 +176,8 @@ public class TGrafo {
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				if (i == j) continue;
-				if (adj[i][j] == 0) {
-					g.insereA(i, j);
+				if (adj[i][j] == Float.POSITIVE_INFINITY) {
+					g.insereA(i, j, 1.0f);
 				}
 			}
 		}
@@ -163,8 +196,15 @@ public class TGrafo {
 	private void dfs(int atual, boolean[] visitado, boolean inverso) {
 		visitado[atual] = true;
 		for (int w = 0; w < n; w++) {
-			int existeAresta = inverso ? adj[w][atual] : adj[atual][w];
-			if (existeAresta == 1 && !visitado[w]) {
+			boolean existeAresta;
+
+			if (inverso) {
+				existeAresta = adj[w][atual] != Float.POSITIVE_INFINITY;
+			} else {
+				existeAresta = adj[atual][w] != Float.POSITIVE_INFINITY;
+			}
+
+			if (existeAresta && !visitado[w]) {
 				dfs(w, visitado, inverso);
 			}
 		}
@@ -198,7 +238,7 @@ public class TGrafo {
 	private void dfsIgnorandoDirecao(int atual, boolean[] visitado) {
 		visitado[atual] = true;
 		for (int w = 0; w < n; w++) {
-			if ((adj[atual][w] == 1 || adj[w][atual] == 1) && !visitado[w]) {
+			if ((adj[atual][w] != Float.POSITIVE_INFINITY || adj[w][atual] != Float.POSITIVE_INFINITY) && !visitado[w]) {
 				dfsIgnorandoDirecao(w, visitado);
 			}
 		}
@@ -248,8 +288,8 @@ public class TGrafo {
 
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
-				if (adj[i][j] == 1 && grupo[i] != grupo[j]) {
-					reduzido.insereA(grupo[i], grupo[j]);
+				if (adj[i][j] != Float.POSITIVE_INFINITY && grupo[i] != grupo[j]) {
+					reduzido.insereA(grupo[i], grupo[j], adj[i][j]);
 				}
 			}
 		}

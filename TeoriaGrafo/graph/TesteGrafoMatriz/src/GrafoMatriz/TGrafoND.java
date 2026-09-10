@@ -85,7 +85,7 @@ public class TGrafoND {
 
 	// Ex 3)
 	public int Degree(int v) {
-		return inDegree(v) + outDegree(v);
+		return outDegree(v);
 	}
 
 	// Ex 11)
