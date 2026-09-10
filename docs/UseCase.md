@@ -1,3 +1,9 @@
+# Diagrama de Casos de Uso:
+
+![Diagrama de casos de usos](generics/useCases.png)
+
+# Especificação dos Casos de Uso:
+
 ## UC01 - Consultar locais de assistência
 **Ator:** Pessoa interessada em ajudar
 **O que faz:** usuário busca abrigos cadastrados na plataforma, podendo filtrar por região ou tipo de necessidade
