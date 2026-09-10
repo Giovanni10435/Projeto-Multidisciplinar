@@ -1,4 +1,5 @@
 package GrafoMatriz;
+import PPilha.Pilha;
 
 //definição de uma estrutura Matriz de Adjacência para armezanar um grafo
 public class TGrafo {
@@ -192,26 +193,35 @@ public void removeVertice(int v) {
 		return 0;
 	}
 
-	// DFS recursiva. inverso = true percorre as arestas ao contrário (quem chega, em vez de quem sai)
-	private void dfs(int atual, boolean[] visitado, boolean inverso) {
-		visitado[atual] = true;
-		for (int w = 0; w < n; w++) {
-			boolean existeAresta;
+	// DFS usando Pilha
+	// inverso = true percorre as arestas ao contrário (quem chega, em vez de quem sai)
+	private void dfs(int vInicio, boolean[] marcado, boolean inverso) {
+		Pilha p = new Pilha(n);
+		marcado[vInicio] = true;
+		p.push(vInicio);
 
-			if (inverso) {
-				existeAresta = adj[w][atual] != Float.POSITIVE_INFINITY;
-			} else {
-				existeAresta = adj[atual][w] != Float.POSITIVE_INFINITY;
-			}
-
-			if (existeAresta && !visitado[w]) {
-				dfs(w, visitado, inverso);
+		while (!p.isEmpty()) {
+			int atual = p.pop();
+			int m = proximoNaoMarcado(atual, marcado, inverso);
+			while (m != -1) {
+				marcado[m] = true;
+				p.push(atual);
+				atual = m;
+				m = proximoNaoMarcado(atual, marcado, inverso);
 			}
 		}
 	}
 
-	private boolean todosVisitados(boolean[] visitado) {
-		for (boolean v : visitado) {
+	private int proximoNaoMarcado(int v, boolean[] marcado, boolean inverso) {
+    for (int w = 0; w < n; w++) {
+        float existeAresta = inverso ? adj[w][v] : adj[v][w];
+        if (existeAresta != Float.POSITIVE_INFINITY && !marcado[w]) return w;
+    }
+    return -1;
+}
+
+	private boolean todosVisitados(boolean[] marcado) {
+		for (boolean v : marcado) {
 			if (!v) return false;
 		}
 		return true;
@@ -230,20 +240,31 @@ public void removeVertice(int v) {
 
 	// C1: ignorando o sentido das setas, dá pra alcançar todo mundo a partir de 0
 	private boolean isFracamenteConexo() {
-		boolean[] visitado = new boolean[n];
-		dfsIgnorandoDirecao(0, visitado);
-		return todosVisitados(visitado);
-	}
+		boolean[] marcado = new boolean[n];
+		Pilha p = new Pilha(n);
+		marcado[0] = true;
+		p.push(0);
 
-	private void dfsIgnorandoDirecao(int atual, boolean[] visitado) {
-		visitado[atual] = true;
-		for (int w = 0; w < n; w++) {
-			if ((adj[atual][w] != Float.POSITIVE_INFINITY || adj[w][atual] != Float.POSITIVE_INFINITY) && !visitado[w]) {
-				dfsIgnorandoDirecao(w, visitado);
+		while (!p.isEmpty()) {
+			int atual = p.pop();
+			int m = proximoNaoMarcadoIgnorandoDirecao(atual, marcado);
+			while (m != -1) {
+				marcado[m] = true;
+				p.push(atual);
+				atual = m;
+				m = proximoNaoMarcadoIgnorandoDirecao(atual, marcado);
 			}
 		}
+		return todosVisitados(marcado);
 	}
 
+	private int proximoNaoMarcadoIgnorandoDirecao(int v, boolean[] marcado) {
+    for (int w = 0; w < n; w++) {
+        boolean temAresta = adj[v][w] != Float.POSITIVE_INFINITY || adj[w][v] != Float.POSITIVE_INFINITY;
+        if (temAresta && !marcado[w]) return w;
+    }
+    return -1;
+}
 	// C2: para TODO par (i, j), existe caminho i->j OU j->i
 	private boolean isUnilateralmenteConexo() {
 		boolean[][] alcanca = new boolean[n][n];

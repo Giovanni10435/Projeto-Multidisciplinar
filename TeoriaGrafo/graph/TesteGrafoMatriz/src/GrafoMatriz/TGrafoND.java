@@ -1,4 +1,5 @@
 package GrafoMatriz;
+import PPilha.Pilha;
 
 //definição de uma estrutura Matriz de Adjacência para armezanar um grafo
 public class TGrafoND {
@@ -151,22 +152,38 @@ public class TGrafoND {
 
 	// Ex 15)
 	public int conexidade() {
-		boolean[] visitado = new boolean[n];
-		dfs(0, visitado);
+		boolean[] marcado = new boolean[n];
+		dfs(0, marcado);
 
 		for (int i = 0; i < n; i++) {
-			if (!visitado[i]) return 1; // desconexo
+			if (!marcado[i]) return 1; // desconexo
 		}
 		return 0; // conexo
 	}
 
-	private void dfs(int atual, boolean[] visitado) {
-		visitado[atual] = true;
-		for (int w = 0; w < n; w++) {
-			if (adj[atual][w] == 1 && !visitado[w]) {
-				dfs(w, visitado);
+	// DFS usando Pilha
+	private void dfs(int vInicio, boolean[] marcado) {
+		Pilha p = new Pilha(n);
+		marcado[vInicio] = true;
+		p.push(vInicio);
+
+		while (!p.isEmpty()) {
+			int atual = p.pop();
+			int m = proximoNaoMarcado(atual, marcado);
+			while (m != -1) {
+				marcado[m] = true;
+				p.push(atual);
+				atual = m;
+				m = proximoNaoMarcado(atual, marcado);
 			}
 		}
 	}
 
+	// procura um vizinho de v ainda não marcado (retorna -1 se não achar)
+	private int proximoNaoMarcado(int v, boolean[] marcado) {
+		for (int w = 0; w < n; w++) {
+			if (adj[v][w] == 1 && !marcado[w]) return w;
+		}
+		return -1;
+	}
 }
