@@ -179,5 +179,41 @@ public class TesteGrafoLista {
             System.out.println("Grafo construído pelo arquivo:");
             g5.show();
         }
-    }
+    
+            // =====================================================
+        // TESTE DO isCompleto - dirigido
+        // =====================================================
+        System.out.println("\nTeste isCompleto (TGrafo dirigido):");
+        System.out.println("g é completo? " + g.isCompleto());
+
+        // =====================================================
+        // TESTE DO removeVertice - dirigido
+        // =====================================================
+        System.out.println("\nTeste removeVertice (TGrafo dirigido):");
+        System.out.println("g antes de remover vértice 2:");
+        g.show();
+        g.removeVertice(2);
+        System.out.println("g depois de remover vértice 2:");
+        g.show();
+
+        // =====================================================
+        // TESTE DO TGrafoND: removeVertice e isCompleto
+        // =====================================================
+        System.out.println("\nTeste TGrafoND (não-dirigido):");
+
+        TGrafoND gnd = new TGrafoND(4);
+        gnd.insereA(0, 1);
+        gnd.insereA(0, 2);
+        gnd.insereA(1, 2);
+        gnd.insereA(1, 3);
+
+        System.out.println("gnd antes:");
+        gnd.show();
+
+        System.out.println("gnd é completo? " + gnd.isCompleto());
+
+        gnd.removeVertice(1);
+        System.out.println("gnd depois de remover vértice 1:");
+        gnd.show();
 }
+ }

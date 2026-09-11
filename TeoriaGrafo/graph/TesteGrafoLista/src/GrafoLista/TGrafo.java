@@ -311,8 +311,49 @@ public class TGrafo {
 		return null;
 	}
 
-	// EX28) TODO: Método que permite remover um vértice do grafo (não dirigido) - Remova arestas associadas
-	// EX29) TODO: Método que permite remover um vértice do grafo (dirigido) - Remova arestas associadas
-	// EX30) TODO: Método que verifica se o grafo (dirigido ou não) é completo
+		// Ex 29) remove um vértice v do grafo DIRIGIDO, junto com todas as arestas associadas
+	public TGrafo removeVertice(int v) {
+		int novoN = n - 1;
+		TGrafo novo = new TGrafo(novoN);
 
+		for (int i = 0; i < n; i++) {
+			if (i == v) continue;
+			int novoI = i > v ? i - 1 : i;
+
+			TNo no = adj[i];
+			while (no != null) {
+				int w = no.w;
+				if (w != v) {
+					int novoW = w > v ? w - 1 : w;
+					novo.insereA(novoI, novoW);
+				}
+				no = no.prox;
+			}
+		}
+
+		this.n = novo.n;
+		this.m = novo.m;
+		this.adj = novo.adj;
+		return this;
+	}
+
+	// Ex 30) verifica se o grafo (dirigido) é completo
+	public boolean isCompleto() {
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				if (i == j) continue;
+				if (!existeAresta(i, j)) return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean existeAresta(int v, int w) {
+		TNo no = adj[v];
+		while (no != null) {
+			if (no.w == w) return true;
+			no = no.prox;
+		}
+		return false;
+	}
 }
