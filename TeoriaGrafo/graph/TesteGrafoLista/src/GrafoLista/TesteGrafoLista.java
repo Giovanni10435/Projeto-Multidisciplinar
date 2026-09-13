@@ -8,7 +8,7 @@ public class TesteGrafoLista {
 
         // Cria um objeto para um Grafo com 4 vértices
         // Armazendo em uma lista de adjacência
-        TGrafo g = new TGrafo(4);
+        TGrafoList g = new TGrafoList(4);
 
         //GrafoMatriz.TGrafo matriz = new GrafoMatriz.TGrafo(4);
 
@@ -73,7 +73,7 @@ public class TesteGrafoLista {
 
         System.out.println("\nTeste iguais:");
 
-        TGrafo g2 = new TGrafo(4);
+        TGrafoList g2 = new TGrafoList(4);
 
         g2.insereA(0,1);
         g2.insereA(0,2);
@@ -84,7 +84,7 @@ public class TesteGrafoLista {
         System.out.println("g e g2 são iguais? " + g.iguais(g, g2));
 
 
-        TGrafo g3 = new TGrafo(4);
+        TGrafoList g3 = new TGrafoList(4);
 
         g3.insereA(0,1);
         g3.insereA(0,2);
@@ -129,7 +129,7 @@ public class TesteGrafoLista {
         System.out.println("g é simétrico? " + g.ehSimetrico(g));
 
 
-        TGrafo g4 = new TGrafo(4);
+        TGrafoList g4 = new TGrafoList(4);
 
         g4.insereA(0,1);
         g4.insereA(1,0);
@@ -147,7 +147,7 @@ public class TesteGrafoLista {
         // =====================================================
         System.out.println("\nTeste inverteLista:");
 
-        TGrafo g6 = new TGrafo(4);
+        TGrafoList g6 = new TGrafoList(4);
 
         g6.insereA(0,1);
         g6.insereA(0,2);
@@ -173,14 +173,14 @@ public class TesteGrafoLista {
 
         System.out.println("\nTeste buildGraph:");
 
-        TGrafo g5 = TGrafo.buildGraph("grafo.txt");
+        TGrafoList g5 = TGrafoList.buildGraph("grafo.txt");
 
         if (g5 != null) {
             System.out.println("Grafo construído pelo arquivo:");
             g5.show();
         }
     
-            // =====================================================
+        // =====================================================
         // TESTE DO isCompleto - dirigido
         // =====================================================
         System.out.println("\nTeste isCompleto (TGrafo dirigido):");
@@ -201,7 +201,7 @@ public class TesteGrafoLista {
         // =====================================================
         System.out.println("\nTeste TGrafoND (não-dirigido):");
 
-        TGrafoND gnd = new TGrafoND(4);
+        TGrafoListND gnd = new TGrafoListND(4);
         gnd.insereA(0, 1);
         gnd.insereA(0, 2);
         gnd.insereA(1, 2);

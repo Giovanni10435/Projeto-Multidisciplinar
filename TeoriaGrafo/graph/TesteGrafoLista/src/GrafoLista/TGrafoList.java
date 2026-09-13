@@ -10,7 +10,7 @@ class TNo { // define uma struct (registro)
 }
 
 //definição de uma classe para armezanar um grafo
-public class TGrafo {
+public class TGrafoList {
 	// atributos privados
 	private	int n; // quantidade de vértices
 	private	int m; // quantidade de arestas
@@ -18,7 +18,7 @@ public class TGrafo {
 	// métodos públicos
 	// Construtor do grafo com a lista de
 	// adjacência
-	public TGrafo( int n ) {
+	public TGrafoList( int n ) {
 	    // aloca a estrutura TGrafo
 	    this.n = n;
 	    this.m = 0;
@@ -147,7 +147,7 @@ public class TGrafo {
 	}
 
 	// EX21) Método que decide se fois grafos direcionados são iguais (considerando ordenado na lista)
-	public boolean iguais(TGrafo a, TGrafo b) {
+	public boolean iguais(TGrafoList a, TGrafoList b) {
         // Para serem IGUAIS:
         // V1 = V2 - Grafos devem possuir exatamente o mesmo conjunto finito de vértices
         // A1 = A2 - Grafos devem possuir exatamente o mesmo conjunto de arcos direcionados
@@ -221,7 +221,7 @@ public class TGrafo {
 
 	// EX23) Método que recebe grafo armazenado em lista de adjacência e inverte a lista de todos os
 	// vértices do grafo
-	public TGrafo inverteLista(TGrafo a) {
+	public TGrafoList inverteLista(TGrafoList a) {
 		for (int i = 0; i < a.n; i++) {
 			TNo ant = null;
 			TNo no = a.adj[i];
@@ -240,21 +240,21 @@ public class TGrafo {
 
 	// EX24) Método que recebe grafo e um vértice como parâmetro e retorna 1 se vértice for uma
 	// fonte (grau de saída maior que 0 e grau de entrada igual a 0), ou 0 caso contrário.
-	public int ehFonte(TGrafo a, int v) {
+	public int ehFonte(TGrafoList a, int v) {
 		if (a.outDegree(v) > 0 && a.inDegree(v) == 0) return 1;
 		else return 0;
 	}
 
 	// EX25) Método que receba um grafo e um vértice como parâmetro, retorna 1 se vértice for uma
 	// sorvedouro (grau de entrada maior que 0 e grau de saída igual a 0), ou 0 caso contrário.
-	public int ehSorvedouro(TGrafo a, int v) {
+	public int ehSorvedouro(TGrafoList a, int v) {
 		if (a.inDegree(v) > 0 && a.outDegree(v) == 0) return 1;
 		else return 0;
 	}
 
 	// EX26) Método que receba um grafo dirigido como parâmetro e retorna 1 se o grafo for simétrico
 	// e 0 caso contrário.
-	public int ehSimetrico(TGrafo a) {
+	public int ehSimetrico(TGrafoList a) {
 		TNo no;
 
 		for (int i = 0; i < a.n; i++) {
@@ -279,18 +279,19 @@ public class TGrafo {
 
 	// EX27) Método que recebe nome de arquivo com formato do professor e construa a representação
 	// da lista de adjacência do grafo
-	public static TGrafo buildGraph(String arq) {
+	public static TGrafoList buildGraph(String arq) {
+		System.out.println(System.getProperty("user.dir"));
 		try (BufferedReader br = new BufferedReader(new FileReader(arq))) {
 			String linha;
 			int contador = 0;
 			int V = 0;
 			int A = 0;
-			TGrafo grafo = null;
+			TGrafoList grafo = null;
 
 			while ((linha = br.readLine()) != null) {
 				if (contador == 0) {
 					V = Integer.parseInt(linha); // Numero de vértices
-					grafo = new TGrafo(V);
+					grafo = new TGrafoList(V);
 					contador++;
 				} else if (contador == 1) {
 					contador++; // Ignora numero de arestas já que insereA já conta numero de arestas
@@ -311,10 +312,10 @@ public class TGrafo {
 		return null;
 	}
 
-		// Ex 29) remove um vértice v do grafo DIRIGIDO, junto com todas as arestas associadas
-	public TGrafo removeVertice(int v) {
+	// Ex 29) remove um vértice v do grafo DIRIGIDO, junto com todas as arestas associadas
+	public TGrafoList removeVertice(int v) {
 		int novoN = n - 1;
-		TGrafo novo = new TGrafo(novoN);
+		TGrafoList novo = new TGrafoList(novoN);
 
 		for (int i = 0; i < n; i++) {
 			if (i == v) continue;

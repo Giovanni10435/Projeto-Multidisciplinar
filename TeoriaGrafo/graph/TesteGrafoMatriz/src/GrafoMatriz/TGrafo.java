@@ -1,4 +1,5 @@
 package GrafoMatriz;
+import FFilaCircular.FilaCircular;
 import PPilha.Pilha;
 
 //definição de uma estrutura Matriz de Adjacência para armezanar um grafo
@@ -194,31 +195,68 @@ public void removeVertice(int v) {
 	}
 
 	// DFS usando Pilha
-	// inverso = true percorre as arestas ao contrário (quem chega, em vez de quem sai)
-	private void dfs(int vInicio, boolean[] marcado, boolean inverso) {
+	public void dfs(int vInicio) {
+		int nroNosMarcados = 0;
+		int[] nosMarcados = new int [n];
+		int k, l;
 		Pilha p = new Pilha(n);
-		marcado[vInicio] = true;
+
+		System.out.println("Vértice visitado: " + vInicio);
+		nroNosMarcados = marcarNo(nosMarcados, nroNosMarcados, vInicio);
 		p.push(vInicio);
 
 		while (!p.isEmpty()) {
-			int atual = p.pop();
-			int m = proximoNaoMarcado(atual, marcado, inverso);
-			while (m != -1) {
-				marcado[m] = true;
-				p.push(atual);
-				atual = m;
-				m = proximoNaoMarcado(atual, marcado, inverso);
+			k = p.pop();
+
+			// Existe nó adjacente a n ainda não marcado
+			while ((l = noAdjacente(k, nosMarcados)) != -1) {
+				System.out.println("Vértice visitado: " + l);
+				p.push(k);
+				nroNosMarcados = marcarNo(nosMarcados, nroNosMarcados, vInicio);
+				k = l;
 			}
 		}
 	}
 
-	private int proximoNaoMarcado(int v, boolean[] marcado, boolean inverso) {
-    for (int w = 0; w < n; w++) {
-        float existeAresta = inverso ? adj[w][v] : adj[v][w];
-        if (existeAresta != Float.POSITIVE_INFINITY && !marcado[w]) return w;
-    }
-    return -1;
-}
+	// BFS usando lista
+	public void bfs(int vInicio) {
+		int nroNosMarcados = 0;
+		int[] nosMarcados = new int [this.n];
+		int k, l;
+		FilaCircular f = new FilaCircular();
+
+		marcarNo(nosMarcados, nroNosMarcados, vInicio);
+
+		System.out.println("Vértice visitado: " + vInicio);
+		f.enqueue(vInicio);
+
+		while (!f.qIsEmpty()) {
+			k = f.dequeue();
+
+			// Existe nó adjacente a n ainda não marcado
+			while ((l = noAdjacente(k, nosMarcados)) != -1) {
+				System.out.println("Vértice visitado: " + l);
+				f.enqueue(l);
+				marcarNo(nosMarcados, nroNosMarcados, l);
+			}
+		}
+	}
+
+	private int marcarNo(int[] nosMarcados, int nroNosMarcados, int no) {
+		nosMarcados[nroNosMarcados] = no;
+		return nroNosMarcados + 1;
+	}
+
+	private int noAdjacente(int no, int[] nosMarcados) {
+		for (int i = 0; i < n; i++) {
+			// Verifica se aquele nó é vazio e se o numero de nos já marcados é 0 (não foi marcado ainda)
+			// Caso seja, retorna o nó
+			if (adj[no][i] != Float.POSITIVE_INFINITY && nosMarcados[i] == 0) {
+				return i;
+			}
+		}
+		return -1;
+	}
 
 	private boolean todosVisitados(boolean[] marcado) {
 		for (boolean v : marcado) {
@@ -230,10 +268,10 @@ public void removeVertice(int v) {
 	// C3: de 0 alcança todo mundo (indo) E todo mundo alcança 0 (voltando)
 	private boolean isFortementeConexo() {
 		boolean[] vaiIndo = new boolean[n];
-		dfs(0, vaiIndo, false);
+		dfs(0);
 
 		boolean[] vaiVoltando = new boolean[n];
-		dfs(0, vaiVoltando, true);
+		dfs(0);
 
 		return todosVisitados(vaiIndo) && todosVisitados(vaiVoltando);
 	}
@@ -269,7 +307,7 @@ public void removeVertice(int v) {
 	private boolean isUnilateralmenteConexo() {
 		boolean[][] alcanca = new boolean[n][n];
 		for (int i = 0; i < n; i++) {
-			dfs(i, alcanca[i], false);
+			dfs(i);
 		}
 
 		for (int i = 0; i < n; i++) {
@@ -286,7 +324,7 @@ public void removeVertice(int v) {
 	public TGrafo grafoReduzido() {
 		boolean[][] alcanca = new boolean[n][n];
 		for (int i = 0; i < n; i++) {
-			dfs(i, alcanca[i], false);
+			dfs(i);
 		}
 
 		int[] grupo = new int[n];

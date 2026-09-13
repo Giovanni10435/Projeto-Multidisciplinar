@@ -1,13 +1,13 @@
 package GrafoLista;
 
 //definição de uma classe para armazenar um grafo não-dirigido em lista de adjacência
-public class TGrafoND {
+public class TGrafoListND {
 	// atributos privados
 	private int n; // quantidade de vértices
 	private int m; // quantidade de arestas
 	private TNo adj[]; // um vetor onde cada entrada guarda o início de uma lista
 
-	public TGrafoND(int n) {
+	public TGrafoListND(int n) {
 		this.n = n;
 		this.m = 0;
 		TNo adjac[] = new TNo[n];
@@ -82,7 +82,7 @@ public class TGrafoND {
 	// Ex 28) remove um vértice v do grafo NÃO-DIRIGIDO, junto com todas as arestas associadas
 	public void removeVertice(int v) {
 		int novoN = n - 1;
-		TGrafoND novo = new TGrafoND(novoN);
+		TGrafoListND novo = new TGrafoListND(novoN);
 
 		for (int i = 0; i < n; i++) {
 			if (i == v) continue; // pula o vértice removido
