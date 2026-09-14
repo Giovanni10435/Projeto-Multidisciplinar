@@ -1,9 +1,0 @@
-/**
- * 
- */
-/**
- * @author icalc
- *
- */
-module TestePilha {
-}

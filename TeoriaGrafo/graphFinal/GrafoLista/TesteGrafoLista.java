@@ -1,4 +1,5 @@
 package GrafoLista;
+import GrafoMatriz.TGrafo;
 
 public class TesteGrafoLista {
 
@@ -9,8 +10,10 @@ public class TesteGrafoLista {
         // Cria um objeto para um Grafo com 4 vértices
         // Armazendo em uma lista de adjacência
         TGrafoList g = new TGrafoList(4);
-
-        //GrafoMatriz.TGrafo matriz = new GrafoMatriz.TGrafo(4);
+        
+        // Armazena em uma matriz de adjacência
+        TGrafo gD = new TGrafo(4);
+        TGrafoList grafo = new TGrafoList(gD.adj.length); // Para transformar matriz em lista
 
         //insere as arestas do grafo
         //A={(0,1),(0,2),(0,3),(2,1),(2,3),(1,3)}
@@ -21,7 +24,19 @@ public class TesteGrafoLista {
         g.insereA(2,3);
         g.insereA(1,3);
 
+        //insere as arestas do grafo de matriz
+        //A={(0,1),(0,2),(0,3),(2,1),(2,3),(1,3)}
+        gD.insereA(0,1,5.5f);
+		gD.insereA(1,0,5.5f);
+		gD.insereA(0,2,2.0f);
+		gD.insereA(2,0,2.0f);
+		gD.insereA(2,1,3.2f);
+		gD.insereA(1,2,3.2f);
+		gD.insereA(1,3,7.0f);
+		gD.insereA(3,1,7.0f);
+
         // mostra o grafo preenchido
+        System.out.println("Grafo de lista de adjacência:");
         g.show();
 
         g.removeA(0,3);  // remove a aresta (0,3)
@@ -215,5 +230,14 @@ public class TesteGrafoLista {
         gnd.removeVertice(1);
         System.out.println("gnd depois de remover vértice 1:");
         gnd.show();
+
+        // =====================================================
+        // TESTE DO matriceToList
+        // =====================================================
+        System.out.println("\nGrafo de matriz de adjacência:");
+        gD.show();
+
+        grafo = grafo.matriceToList(gD, grafo);
+        grafo.show();
+    }
 }
- }

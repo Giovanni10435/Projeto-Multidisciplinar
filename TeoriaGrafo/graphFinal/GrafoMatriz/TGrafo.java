@@ -7,7 +7,7 @@ public class TGrafo {
 	// Atributos Privados
 	private	int n; // quantidade de vértices
 	private	int m; // quantidade de arestas
-	private	float adj[][]; //matriz de adjacência
+	public	float adj[][]; //matriz de adjacência
 	// Métodos Públicos
 	public TGrafo(int n) {  // construtor
 	    this.n = n;
