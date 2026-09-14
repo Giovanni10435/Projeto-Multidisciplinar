@@ -1,0 +1,103 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+
+abstract class Conta {
+    - id: int
+    - email: String
+    - senhaHash: String
+    - ativo: boolean
+    - dataCadastro: Date
+
+    + autenticar(senha: String): boolean
+    + alterarSenha(senhaAtual: String, novaSenha: String): void
+    + ativar(): void
+    + desativar(): void
+}
+
+class Voluntario {
+    - nome: String
+    - telefone: String
+    - disponibilidade: String
+
+    + atualizarDados(nome: String, telefone: String): void
+    + atualizarDisponibilidade(disponibilidade: String): void
+    + realizarDoacao(necessidade: Necessidade, quantidade: int): Doacao
+    + candidatarSe(instituicao: Instituicao): Voluntariado
+}
+
+class Instituicao {
+    - nome: String
+    - cnpj: String
+    - descricao: String
+    - telefone: String
+    - emailContato: String
+    - statusVerificacao: StatusVerificacao
+
+    + solicitarVerificacao(): void
+    + aprovarVoluntario(voluntariado: Voluntariado): void
+    + recusarVoluntario(voluntariado: Voluntariado): void
+    + criarNecessidade(necessidade: Necessidade): void
+    + atualizarPerfil(): void
+}
+
+class Localizacao {
+    - id: int
+    - endereco: String
+    - latitude: double
+    - longitude: double
+
+    + atualizarEndereco(endereco: String): void
+    + calcularDistancia(latitude: double, longitude: double): double
+}
+
+class Necessidade {
+    - id: int
+    - descricao: String
+    - quantidadeSolicitada: int
+    - quantidadeRecebida: int
+    - status: StatusNecessidade
+
+    + registrarDoacao(quantidade: int): void
+    + verificarAtendimento(): boolean
+    + encerrar(): void
+}
+
+class Doacao {
+    - id: int
+    - data: Date
+    - quantidade: int
+    - status: StatusDoacao
+
+    + confirmar(): void
+    + cancelar(): void
+    + entregar(): void
+}
+
+class Voluntariado {
+    - id: int
+    - dataSolicitacao: Date
+    - dataInicio: Date
+    - dataFim: Date
+    - status: StatusVoluntariado
+
+    + aprovar(): void
+    + recusar(): void
+    + iniciar(): void
+    + finalizar(): void
+    + cancelar(): void
+}
+
+Conta <|-- Voluntario
+Conta <|-- Instituicao
+
+Instituicao "1" *-- "1" Localizacao
+Instituicao "1" *-- "0..*" Necessidade
+
+Voluntario "1" -- "0..*" Doacao : realiza
+Necessidade "1" -- "0..*" Doacao : recebe
+
+Voluntario "1" -- "0..*" Voluntariado : solicita
+Instituicao "1" -- "0..*" Voluntariado : avalia
+
+@enduml
