@@ -1,16 +1,5 @@
 # Modelo Conceitual - AcolheSP
 
-## Integrantes
-
-* **Nome:** Giovanni Barreiro de Castro
-  **RA:** 10435745
-
-* **Nome:** João Vitor Garcia Aguiar Mintz
-  **RA:** 10440421
-
-* **Nome:** Yan Andreotti dos Santos
-  **RA:** *Inserir o RA*
-
 ---
 
 ## Proposições
@@ -100,7 +89,7 @@
 
 ---
 
-# Tarefa utilizando GOMS
+# GOMS
 
 ## Metas (Goals)
 
