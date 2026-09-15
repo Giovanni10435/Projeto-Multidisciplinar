@@ -1,0 +1,91 @@
+@enduml
+
+@startuml
+
+hide circle
+skinparam linetype ortho
+
+entity "Conta" as conta {
+    * id : INT <<PK>>
+    --
+    email : VARCHAR
+    senhaHash : VARCHAR
+    ativo : BOOLEAN
+    dataCadastro : DATE
+}
+
+entity "Voluntario" as voluntario {
+    * id : INT <<PK, FK>>
+    --
+    nome : VARCHAR
+    telefone : VARCHAR
+    disponibilidade : VARCHAR
+}
+
+entity "Instituicao" as instituicao {
+    * id : INT <<PK, FK>>
+    --
+    nome : VARCHAR
+    cnpj : VARCHAR
+    descricao : TEXT
+    telefone : VARCHAR
+    emailContato : VARCHAR
+    statusVerificacao : VARCHAR
+}
+
+entity "Localizacao" as localizacao {
+    * id : INT <<PK>>
+    --
+    endereco : VARCHAR
+    latitude : DECIMAL
+    longitude : DECIMAL
+    instituicao_id : INT <<FK>>
+}
+
+entity "Voluntariado" as voluntariado {
+    * id : INT <<PK>>
+    --
+    dataSolicitacao : DATE
+    dataInicio : DATE
+    dataFim : DATE
+    status : VARCHAR
+    voluntario_id : INT <<FK>>
+    instituicao_id : INT <<FK>>
+}
+
+entity "Necessidade" as necessidade {
+    * id : INT <<PK>>
+    --
+    descricao : VARCHAR
+    quantidadeSolicitada : INT
+    quantidadeRecebida : INT
+    status : VARCHAR
+    instituicao_id : INT <<FK>>
+}
+
+entity "Doacao" as doacao {
+    * id : INT <<PK>>
+    --
+    data : DATE
+    quantidade : INT
+    status : VARCHAR
+    voluntario_id : INT <<FK>>
+    necessidade_id : INT <<FK>>
+}
+
+' Herança / especialização
+conta ||--o| voluntario : "é"
+conta ||--o| instituicao : "é"
+
+' Relacionamentos
+voluntario ||--o{ voluntariado : solicita
+instituicao ||--o{ voluntariado : avalia
+
+instituicao ||--|| localizacao : possui
+
+instituicao ||--o{ necessidade : possui
+
+voluntario ||--o{ doacao : realiza
+necessidade ||--o{ doacao : recebe
+
+@enduml
