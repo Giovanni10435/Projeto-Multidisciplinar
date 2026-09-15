@@ -107,5 +107,16 @@ public class TesteGrafoMatriz {
 		gND.removeVertice(2);
 		System.out.println("gND depois de remover vértice 2:");
 		gND.show();
+
+        // Teste nao valorado
+		System.out.println("\n--- Teste não valorado ---");
+		TGrafo gNaoValorado = new TGrafo(4);
+
+		gNaoValorado.insereA(0, 1);
+		gNaoValorado.insereA(0, 2);
+
+		gNaoValorado.show();
   }
+
+	
 }

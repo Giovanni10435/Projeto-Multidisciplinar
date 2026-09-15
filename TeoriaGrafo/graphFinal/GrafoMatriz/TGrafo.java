@@ -26,12 +26,18 @@ public class TGrafo {
 
 	// Insere uma aresta no Grafo tal que
 	// v é adjacente a w
+	// Grafo Valorado
 	public void insereA(int v, int w, float valor) {
 	    // testa se nao temos a aresta
 	    if(adj[v][w] == Float.POSITIVE_INFINITY){
 	        adj[v][w] = valor;
 	        m++; // atualiza qtd arestas
 	    }
+	}
+
+ 	// Grafo não valorado
+	public void insereA(int v, int w) {
+		insereA(v, w, 1.0f);
 	}
 	
 	// remove uma aresta v->w do Grafo	
