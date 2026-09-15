@@ -1,0 +1,61 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide circle
+hide methods
+top to bottom direction
+
+abstract class Conta {
+  email
+  ativo
+}
+
+class Voluntario {
+  nome
+  telefone
+  disponibilidade
+}
+
+class Instituicao {
+  nome
+  cnpj
+  descricao
+  statusVerificacao
+}
+
+Conta <|-- Voluntario
+Conta <|-- Instituicao
+
+class Voluntariado {
+  dataSolicitacao
+  dataInicio
+  dataFim
+  status
+}
+
+class Localizacao {
+  endereco
+  latitude
+  longitude
+}
+
+class Necessidade {
+  descricao
+  quantidadeSolicitada
+  quantidadeRecebida
+  status
+}
+
+class Doacao {
+  data
+  quantidade
+  status
+}
+
+Voluntario "1" -- "0..*" Voluntariado : solicita
+Instituicao "1" -- "0..*" Voluntariado : avalia
+Instituicao "1" *-- "1" Localizacao
+Instituicao "1" *-- "0..*" Necessidade
+Voluntario "1" -- "0..*" Doacao : realiza
+Necessidade "1" -- "0..*" Doacao : recebe
+
+@enduml
