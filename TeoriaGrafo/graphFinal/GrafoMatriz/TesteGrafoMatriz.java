@@ -116,7 +116,50 @@ public class TesteGrafoMatriz {
 		gNaoValorado.insereA(0, 2);
 
 		gNaoValorado.show();
+
+
+
+		// =====================================================
+		// Grafos obrigatórios do exercício de Busca (BFS/DFS)
+		// =====================================================
+
+		System.out.println("\n=== G10 (dirigido) - a=0, b=1, c=2, d=3, e=4, f=5, g=6, h=7 ===");
+		TGrafo g10 = new TGrafo(8);
+		g10.insereA(0, 1); // a->b
+		g10.insereA(0, 2); // a->c
+		g10.insereA(0, 4); // a->e
+		g10.insereA(1, 3); // b->d
+		g10.insereA(1, 4); // b->e
+		g10.insereA(2, 5); // c->f
+		g10.insereA(2, 6); // c->g
+		g10.insereA(5, 4); // f->e
+		g10.insereA(5, 6); // f->g
+		g10.insereA(3, 7); // d->h
+		g10.insereA(4, 7); // e->h
+		g10.insereA(6, 7); // g->h
+		g10.show();
+
+		System.out.println("\n--- DFS em G10 a partir de a (0) ---");
+		g10.dfs(0, new boolean[8], false);
+
+		System.out.println("\n--- BFS em G10 a partir de a (0) ---");
+		g10.bfs(0, false);
+
+		System.out.println("\n=== G9 (não-dirigido, representado com aresta nos dois sentidos) - a=0, b=1, c=2, d=3 ===");
+		TGrafo g9 = new TGrafo(4);
+		g9.insereA(0, 1); g9.insereA(1, 0); // a-b
+		g9.insereA(0, 2); g9.insereA(2, 0); // a-c
+		g9.insereA(1, 3); g9.insereA(3, 1); // b-d
+		g9.insereA(2, 3); g9.insereA(3, 2); // c-d
+		g9.show();
+
+		System.out.println("\n--- DFS em G9 a partir de a (0) ---");
+		g9.dfs(0, new boolean[4], false);
+
+		System.out.println("\n--- BFS em G9 a partir de a (0) ---");
+		g9.bfs(0, false);
   }
+
 
 	
 }
