@@ -35,6 +35,7 @@ Backend:
 - Spring Boot - Desenvolvimento da API REST.
 - Spring Security - Desenvolvimento da camada de segurança.
 - PostegreSQL - Banco de dados relacional.
+- Keycloak - Ferramenta aberta de login.
 
 ## Estrutura de pastas 📂:
 A estrutura de pastas do projeto eserá organizada separando os componentes do frontend e backend:

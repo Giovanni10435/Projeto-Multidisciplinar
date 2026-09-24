@@ -54,7 +54,9 @@ public class TesteGrafoMatriz {
 		System.out.println("\n--- Ex 7: leitura do arquivo ---");
 		TGrafo gArquivo = TGrafo.lerArquivo("grafo.txt");
 		gArquivo.show();
-
+         
+		//Exc 8
+		System.out.println("\n--- Ex 8: grafo não-dirigido (TGrafoND) ---");
 		gND.insereA(0,1);
 		gND.insereA(0,2);
 		gND.insereA(2,1);
@@ -64,10 +66,9 @@ public class TesteGrafoMatriz {
 		gND.show();
 
 		// Ex 9)
+		System.out.println("\n--- Ex 9: graus do vértice 1 (TGrafoND) ---");
 		System.out.println("\nGrau de entrada do Vértice 1: " + gND.inDegree(1) + "\n");
-		
 		System.out.println("Grau de saída do Vértice 1: " + gND.outDegree(1) + "\n");
-		
 		System.out.println("Grau total do Vértice 1: " + gND.Degree(1) + "\n");
 	
 
