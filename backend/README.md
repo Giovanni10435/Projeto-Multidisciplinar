@@ -66,3 +66,104 @@ Após executar qualquer um dos comandos acima, fique atento ao terminal:
 * A aplicação estará rodando com sucesso quando você vir o logotipo do **Spring** em arte ASCII e a mensagem `Started [NomeDaAplicacao] in X seconds`.
 * Por padrão, você poderá acessar a aplicação pelo navegador através do endereço: **`http://localhost:8080`**.
 
+---
+
+## Hello World TG2: rodar e testar (Codespaces ou local) 🚀
+
+Stack do teste: **Vue (5173) → Spring Boot (8080) → PostgreSQL (5432)**.
+
+No **Codespaces**, Java, Node e Docker já vêm do `.devcontainer`. Use 3 terminais (ícone **+** do painel do terminal):
+
+- **T1:** banco e teste (fica livre)
+- **T2:** backend (fica rodando)
+- **T3:** frontend (fica rodando)
+
+### 1. Ligar o banco (T1, na raiz do projeto)
+
+```bash
+docker compose up -d
+docker ps
+```
+Esperado: container `postgres:16` com status **Up**.
+
+### 2. Ligar o backend (T2)
+
+```bash
+cd backend/demo
+chmod +x mvnw
+./mvnw spring-boot:run
+```
+Esperado: `Started DemoApplication in X seconds`. Deixe aberto.
+
+> Aqui usamos `./mvnw` (Maven Wrapper). Não precisa instalar o Maven.
+
+### 3. Ligar o frontend (T3)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Esperado: `VITE ready` e `Local: http://localhost:5173/`. Deixe aberto.
+
+### 4. Acessar no navegador
+
+**Backend direto (API):**
+
+- Local: `http://localhost:8080/api/hello-world`
+- Codespaces: aba **PORTS** > porta **8080** > ícone do globo. Na URL que abrir, acrescente `/api/hello-world` no final.
+
+Esperado: `{"mensagem":"Hello World do AcolheSP, direto do PostgreSQL!"}`
+
+**Tela (frontend):**
+
+- Local: `http://localhost:5173`
+- Codespaces: aba **PORTS** > porta **5173** > ícone do globo.
+
+Esperado: **Conectado com Sucesso** e a mensagem do banco.
+
+### 5. Teste único (passa pelo front, back e banco)
+
+No **T1**, na raiz do projeto:
+
+```bash
+docker compose exec database psql -U app -d acolhesp -c "update mensagem set texto = 'Hello World alterado direto no banco';"
+```
+Esperado: `UPDATE 1`.
+
+Agora, na **tela**, clique em **Testar Conexão Novamente**.
+
+Esperado:
+
+- **Front:** a tela mostra **Hello World alterado direto no banco**.
+- **Back (T2):** aparece o log abaixo.
+- **Banco:** o texto lido é o que você acabou de gravar.
+
+```
+[1/3] Requisicao recebida do frontend em /api/hello-world
+Hibernate: select m1_0.id,m1_0.texto from mensagem m1_0
+[2/3] Mensagem lida do PostgreSQL: Hello World alterado direto no banco
+[3/3] Respondendo ao frontend em JSON
+```
+
+### 6. Desligar
+
+1. T3: `Ctrl+C`
+2. T2: `Ctrl+C`
+3. T1: `docker compose stop`
+
+Não use `docker compose down -v` (apaga os dados do banco).
+
+### Se der erro
+
+| Erro | Faça |
+|---|---|
+| `Connection refused 5432` no backend | `docker compose up -d` na raiz |
+| `Cannot connect to the Docker daemon` | `sudo service docker start` |
+| `Permission denied` no `mvnw` | `chmod +x mvnw` |
+| `curl`/navegador na 8080 dá 401 | Conferir se existe `SecurityConfig.java` |
+| Tela: "Erro de Comunicação" | Subir o backend (T2) |
+| `sh: vite: Permission denied` | `cd frontend && rm -rf node_modules && npm install` |
+| `Blocked request. This host is not allowed` (Codespaces) | No `frontend/vite.config.js`, dentro de `server`, adicionar `allowedHosts: true` e reiniciar o `npm run dev` |
+| Nada aparece no log do backend | Clicar no botão da tela (o log só aparece quando chega requisição) |
+| Porta ocupada | `pkill -f vite` ou `pkill -f spring-boot` |
