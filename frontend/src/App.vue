@@ -28,7 +28,7 @@ const carregando = ref(false);
 const erroConexao = ref(false);
 
 // Altere para a URL/porta onde o seu backend vai rodar
-const API_URL = 'http://localhost:8080/api/hello-world';
+const API_URL = '/api/hello-world';
 
 const buscarDados = async () => {
   carregando.value = true;
