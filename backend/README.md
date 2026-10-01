@@ -106,6 +106,46 @@ npm run dev
 ```
 Esperado: `VITE ready` e `Local: http://localhost:5173/`. Deixe aberto.
 
+
+### Problema: `CMD.EXE` / `UNC` / `vite não é reconhecido` / `EISDIR` (WSL)
+
+**Sintoma:** ao rodar `npm install` ou `npm run dev` no WSL aparece `CMD.EXE foi iniciado...`, `caminhos UNC`, `EISDIR` ou `'vite' não é reconhecido`.
+
+**Causa:** o terminal está usando o npm do **Windows**, e não o do Linux.
+
+**Solução:**
+
+1. Trocar para o npm do Linux:
+```bash
+source ~/.nvm/nvm.sh
+nvm use 22
+nvm alias default 22
+which npm
+```
+Esperado: o caminho tem `.nvm` (nada de `/mnt/c/...`).
+
+2. Limpar e reinstalar:
+```bash
+cd frontend
+rm -rf node_modules
+npm install
+npm run dev
+```
+Esperado: `VITE ready`, sem o aviso do `CMD.EXE`.
+
+3. Se o `which npm` ainda mostrar `/mnt/c/...`, rode uma vez e abra um terminal novo:
+```bash
+echo 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; nvm use 22 >/dev/null' >> ~/.bashrc
+```
+Depois repita o passo 2.
+
+**Node não instalado no WSL:**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc
+nvm install 22
+```
+
 ### 4. Acessar no navegador
 
 **Backend direto (API):**
