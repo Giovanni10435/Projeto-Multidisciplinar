@@ -1,8 +1,9 @@
 package GrafoLista;
-import GrafoMatriz.TGrafo;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+
+import GrafoMatriz.TGrafo;
 //definicao da classe de nós da lista
 class TNo { // define uma struct (registro)
 	public int w;  // vértice que é adjacente ao elemento da lista
