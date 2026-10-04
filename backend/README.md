@@ -66,8 +66,6 @@ Após executar qualquer um dos comandos acima, fique atento ao terminal:
 * A aplicação estará rodando com sucesso quando você vir o logotipo do **Spring** em arte ASCII e a mensagem `Started [NomeDaAplicacao] in X seconds`.
 * Por padrão, você poderá acessar a aplicação pelo navegador através do endereço: **`http://localhost:8080`**.
 
----
-
 ## Hello World TG2: rodar e testar (Codespaces ou local) 🚀
 
 Stack do teste: **Vue (5173) → Spring Boot (8080) → PostgreSQL (5432)**.

@@ -1,12 +1,14 @@
 package com.AcolheSP.demo;
 
-import jakarta.annotation.PostConstruct;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.annotation.PostConstruct;
 
 @RestController
 @RequestMapping("/api")
@@ -23,7 +25,7 @@ public class HelloController {
     @PostConstruct
     void seed() {
         if (repo.count() == 0) {
-            repo.save(new Mensagem("Hello World do AcolheSP, direto do PostgreSQL!"));
+            repo.save(new Mensagem("Hello World passando de PostegreSQL -> Backend -> BFF -> Frontend"));
         }
     }
 

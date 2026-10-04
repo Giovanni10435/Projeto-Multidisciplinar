@@ -1,0 +1,72 @@
+@startuml AcolheSP_Deployment_Simplified
+
+skinparam backgroundColor #FEFEFE
+skinparam shadowing true
+
+title Arquitetura de Implantação - AcolheSP
+
+node "🖥️ Cliente\n(Navegador)" as Client {
+    component "Frontend\nVue.js 3" as Frontend
+}
+
+node "🔒 BFF Server\n(Spring Boot)" as BFF {
+    component "Spring Security\n+ Keycloak OIDC" as BFFSecurity
+    component "Session Manager\n(Cookies)" as Session
+    component "API Gateway\n(Proxy)" as Gateway
+}
+
+node "⚙️ Backend Server\n(Spring Boot)" as Backend {
+    component "API REST\n+ Services" as API
+    component "Spring Security\n(JWT)" as BackendSecurity
+    component "Graph Algorithms\n(Proximidade)" as Graph
+}
+
+database "🗄️ PostgreSQL" as DB
+
+node "🔐 Keycloak Server" as Keycloak {
+    component "OAuth2 / OIDC\nIdentity Provider" as IdP
+}
+
+' Fluxo principal
+Frontend -[hidden]down-> BFF
+BFF -[hidden]down-> Backend
+Backend -[hidden]down-> DB
+Keycloak -[hidden]down-> BFF
+
+' Conexões reais
+Frontend --> BFF : "1. HTTPS\nCookie (HttpOnly)"
+BFF --> Keycloak : "2. OAuth2/OIDC\nAuth Code + PKCE"
+BFF --> Backend : "3. HTTPS\nBearer Token (JWT)"
+Backend --> DB : "4. JDBC/JPA\nSQL Queries"
+
+' Legendas nas conexões
+note right of Frontend
+  • Vuetify (UI)
+  • Leaflet (Mapas)
+  • Axios (HTTP)
+  • Vue Router
+end note
+
+note right of BFF
+  • Validação de Sessão
+  • Proxy Seguro
+  • Injeção de Tokens
+  • Rate Limiting
+end note
+
+note right of Backend
+  • Regras de Negócio
+  • CRUD de Abrigos
+  • Algoritmos de Grafos
+  • Autorização por Roles
+end note
+
+note right of DB
+  • users
+  • shelters
+  • donations
+  • volunteers
+  • requests
+end note
+
+@enduml

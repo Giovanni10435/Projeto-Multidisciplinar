@@ -41,7 +41,49 @@ Backend:
 A estrutura de pastas do projeto eserá organizada separando os componentes do frontend e backend:
 
 ```terminal
-inserir aqui a estrutura de pasta
+Projeto-Multidisciplinar/
+├── backend/
+│   └── demo/
+│       └── src/
+│           ├── main/
+│           │   ├── java/
+│           │   │   └── com/AcolheSP/demo/
+│           │   │       ├── HelloController.java
+│           │   │       ├── Mensagem.java
+│           │   │       └── MensagemRepository.java
+│           │   └── resources/
+│           │       └── application.properties
+│           └── test/
+│
+├── BFF/
+│   └── bff/
+│       └── src/
+│           ├── main/
+│           │   ├── java/
+│           │   │   └── com/AcolheSP/bff/
+│           │   │       ├── config/
+│           │   │       ├── controller/
+│           │   │       └── service/
+│           │   └── resources/
+│           │       └── application.properties
+│           └── test/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.vue
+│   │   ├── components/
+│   │   └── assets/
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.js
+│
+├── docs/
+│   ├── generics/
+│   └── wireframe/
+│
+├── docker-compose.yml
+├── start.sh
+└── stop.sh
 ```
 
 ## Como Rodar ⚙️:
@@ -54,6 +96,13 @@ inserir aqui a estrutura de pasta
  - Docker
  - Git
 
+### Inicializar banco de dados ▶️:
+
+```terminal
+docker compose up -d
+docker compose down
+```
+
 ### Executar o frontend ▶️:
 
 Ainda não temos as pastas, exemplos a baixo:
@@ -64,16 +113,26 @@ npm install
 npm run dev
 ```
 
-### Executar o backend ▶️:
+### Executar o backend/BFF ▶️:
 
 Ainda não temos as pastas, exemplos a baixo:
 
 ```terminal
-cd backend
+cd BFF/bff
 ./mvnw spring-boot:run
 ```
 
-**Importante:** As configurações de banco de dados e demais variáveis serão documentadas conforme o desenvolvimento do projeto.
+```terminal
+cd backend/demo
+./mvnw spring-boot:run
+```
+
+### Se quiser rodar todos ao mesmo tempo ▶️:
+
+```terminal
+./start.sh
+./stop.sh
+```
 
 ### Integrantes do projeto 👥:
 

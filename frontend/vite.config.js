@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: true,
-    proxy: { '/api': 'http://localhost:8080' },
+    proxy: { '/mensagens': 'http://localhost:8081' },
   },
 })
