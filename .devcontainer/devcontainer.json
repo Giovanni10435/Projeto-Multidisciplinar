@@ -1,6 +1,6 @@
 {
     "name": "AcolheSP",
-    "image": "mcr.microsoft.com/devcontainers/java:21",
+    "image": "mcr.microsoft.com/devcontainers/java:21-bookworm",
 
     "features": {
         "ghcr.io/devcontainers/features/node:1": {
