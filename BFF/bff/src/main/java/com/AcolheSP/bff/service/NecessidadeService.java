@@ -36,7 +36,7 @@ public class NecessidadeService {
 
         return backendWebClient
             .put()
-            .uri("/api/instituicoes/" + dadosLimpos.get("instituicao_id") + "/necessidades/" + dadosLimpos.get("necessidadeId"))
+            .uri("/api/instituicoes/" + dadosLimpos.get("instituicao_id") + "/necessidades/" + dadosLimpos.get("id")) 
             .bodyValue(dadosLimpos)
             .retrieve()
             .bodyToMono(Object.class);
@@ -46,7 +46,7 @@ public class NecessidadeService {
     public Mono<Object> removerNecessidade(Map<String, Object> params) {
         return backendWebClient
             .delete()
-            .uri("/api/instituicoes/" + params.get("instituicao_id") + "/necessidades/" + params.get("necessidadeId"))
+            .uri("/api/instituicoes/" + params.get("instituicao_id") + "/necessidades/" + params.get("id"))
             .retrieve()
             .bodyToMono(Object.class);
     }

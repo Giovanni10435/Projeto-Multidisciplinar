@@ -13,7 +13,8 @@ public class DataSanitizer {
         // Faz a limpeza dos dados
         return texto
             .replaceAll("<[^>]*>", "")  // Remove HTML
-            .replaceAll("[;\\-\\-]", "") // Remove ; e -- (SQL injection)
+            .replace(";", "") // Remove ; 
+            .replace("--", "") // Remove  --
             .replaceAll("['\"]", "")     // Remove aspas simples e duplas
             .trim();
     }

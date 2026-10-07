@@ -49,6 +49,7 @@ CREATE TABLE instituicao (
 CREATE TABLE localizacao (
     id             SERIAL         PRIMARY KEY,
     endereco       VARCHAR(255)   NOT NULL,
+    cep            VARCHAR(9),
     latitude       DECIMAL(9, 6)  NOT NULL,
     longitude      DECIMAL(9, 6)  NOT NULL,
     instituicao_id INT            NOT NULL UNIQUE
@@ -109,6 +110,9 @@ CREATE INDEX idx_voluntariado_instituicao ON voluntariado(instituicao_id);
 
 -- =====================================================================
 -- SEED: 3 usuários de teste (1 por role do Keycloak)
+-- >>> Troque email e keycloak_id pelos usuários que estão no Keycloak <<<
+-- keycloak_id = campo "ID" do usuário em Users no painel do Keycloak.
+-- Enquanto NULL, o vínculo pode ser feito pelo email.
 -- =====================================================================
 INSERT INTO conta (keycloak_id, email, role) VALUES
     (NULL, 'admin.teste@acolhesp.com',   'admin'),
@@ -127,8 +131,17 @@ SELECT id, 'Abrigo Esperança', '12.345.678/0001-90',
        '(11) 3000-0001', 'abrigo.teste@acolhesp.com', 'VERIFICADA'
 FROM conta WHERE email = 'abrigo.teste@acolhesp.com';
 
-INSERT INTO localizacao (endereco, latitude, longitude, instituicao_id)
-SELECT 'Praça da Sé, São Paulo - SP', -23.550520, -46.633308, id
+INSERT INTO localizacao (endereco, cep, latitude, longitude, instituicao_id)
+SELECT 'Praça da Sé, São Paulo - SP', '01001-000', -23.550520, -46.633308, id
+FROM conta WHERE email = 'abrigo.teste@acolhesp.com';
+
+-- necessidades de exemplo do abrigo de teste
+INSERT INTO necessidade (descricao, quantidade_solicitada, quantidade_recebida, status, instituicao_id)
+SELECT 'Cobertores', 50, 10, 'ABERTA', id
+FROM conta WHERE email = 'abrigo.teste@acolhesp.com';
+
+INSERT INTO necessidade (descricao, quantidade_solicitada, quantidade_recebida, status, instituicao_id)
+SELECT 'Alimentos não perecíveis (kg)', 100, 0, 'ABERTA', id
 FROM conta WHERE email = 'abrigo.teste@acolhesp.com';
 
 -- role = admin -> só existe em conta (não tem tabela própria no diagrama)
