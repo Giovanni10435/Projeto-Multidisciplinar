@@ -1,27 +1,36 @@
 package com.AcolheSP.demo.service;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.AcolheSP.demo.dto.AbrigoDetalheResponse;
 import com.AcolheSP.demo.dto.AbrigoRequest;
 import com.AcolheSP.demo.dto.AbrigoResponse;
+import com.AcolheSP.demo.dto.NecessidadeResponse;
 import com.AcolheSP.demo.model.Instituicao;
 import com.AcolheSP.demo.model.Localizacao;
+import com.AcolheSP.demo.model.StatusNecessidade;
 import com.AcolheSP.demo.model.StatusVerificacao;
 import com.AcolheSP.demo.repository.ContaRepository;
 import com.AcolheSP.demo.repository.InstituicaoRepository;
+import com.AcolheSP.demo.repository.NecessidadeRepository;
 
 @Service
 public class AbrigoService {
 
     private final InstituicaoRepository instituicaoRepo;
     private final ContaRepository contaRepo;
+    private final NecessidadeRepository necessidadeRepo;
 
-    public AbrigoService(InstituicaoRepository instituicaoRepo, ContaRepository contaRepo) {
+    public AbrigoService(InstituicaoRepository instituicaoRepo, ContaRepository contaRepo,
+            NecessidadeRepository necessidadeRepo) {
         this.instituicaoRepo = instituicaoRepo;
         this.contaRepo = contaRepo;
+        this.necessidadeRepo = necessidadeRepo;
     }
 
     // UC07 - Cadastrar abrigo
@@ -65,11 +74,30 @@ public class AbrigoService {
         return AbrigoResponse.de(instituicaoRepo.save(inst));
     }
 
+    // UC01 - Consultar locais de assistência (filtros opcionais: nome e tipo de necessidade)
     @Transactional(readOnly = true)
-    public AbrigoResponse buscarAbrigo(Integer id) {
-        return instituicaoRepo.findById(id)
-                .map(AbrigoResponse::de)
+    public List<AbrigoResponse> listarAbrigos(String nome, String necessidade) {
+        String nomeFiltro = nome == null ? "" : nome.trim();
+        String necessidadeFiltro = necessidade == null ? "" : necessidade.trim();
+
+        List<Instituicao> encontrados = necessidadeFiltro.isEmpty()
+                ? instituicaoRepo.findByNomeContainingIgnoreCaseOrderByNome(nomeFiltro)
+                : instituicaoRepo.buscarPorNomeENecessidade(nomeFiltro, necessidadeFiltro, StatusNecessidade.ABERTA);
+
+        return encontrados.stream().map(AbrigoResponse::de).toList();
+    }
+
+    // UC02 - Visualizar informações do abrigo (+ necessidades abertas, UC04)
+    @Transactional(readOnly = true)
+    public AbrigoDetalheResponse detalharAbrigo(Integer id) {
+        Instituicao inst = instituicaoRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Abrigo não encontrado"));
+
+        var necessidades = necessidadeRepo.findByInstituicaoIdAndStatus(id, StatusNecessidade.ABERTA).stream()
+                .map(NecessidadeResponse::de)
+                .toList();
+
+        return new AbrigoDetalheResponse(AbrigoResponse.de(inst), necessidades);
     }
 
     private static void exigir(String valor, String campo) {
