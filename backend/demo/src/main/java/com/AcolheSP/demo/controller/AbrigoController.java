@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import com.AcolheSP.demo.dto.AbrigoDetalheResponse;
 import com.AcolheSP.demo.dto.AbrigoRequest;
@@ -44,5 +45,11 @@ public class AbrigoController {
     @GetMapping("/api/abrigos/{id}")
     public AbrigoDetalheResponse detalharAbrigo(@PathVariable Integer id) {
         return abrigoService.detalharAbrigo(id);
+    }
+
+    // UC08: Atualizar informações do abrigo
+    @PutMapping("/api/abrigos/{id}")
+    public AbrigoResponse atualizarAbrigo(@PathVariable Integer id, @RequestBody AbrigoRequest abrigoDados) {
+        return abrigoService.atualizarAbrigo(id, abrigoDados);
     }
 }

@@ -100,6 +100,50 @@ public class AbrigoService {
         return new AbrigoDetalheResponse(AbrigoResponse.de(inst), necessidades);
     }
 
+    // UC08 - Atualizar informações do abrigo (só muda o que vier preenchido)
+    @Transactional
+    public AbrigoResponse atualizarAbrigo(Integer id, AbrigoRequest req) {
+        Instituicao inst = instituicaoRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Abrigo não encontrado"));
+
+        if (vazioParaNull(req.nome()) != null) {
+            inst.setNome(req.nome());
+        }
+        if (vazioParaNull(req.descricao()) != null) {
+            inst.setDescricao(req.descricao());
+        }
+        if (vazioParaNull(req.telefone()) != null) {
+            inst.setTelefone(req.telefone());
+        }
+        if (vazioParaNull(req.emailContato()) != null) {
+            inst.setEmailContato(req.emailContato());
+        }
+
+        String cnpj = vazioParaNull(req.cnpj());
+        if (cnpj != null && !cnpj.equals(inst.getCnpj())) {
+            if (instituicaoRepo.existsByCnpj(cnpj)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe um abrigo com esse CNPJ");
+            }
+            inst.setCnpj(cnpj);
+        }
+
+        Localizacao loc = inst.getLocalizacao();
+        if (vazioParaNull(req.endereco()) != null) {
+            loc.setEndereco(req.endereco());
+        }
+        if (vazioParaNull(req.cep()) != null) {
+            loc.setCep(req.cep());
+        }
+        if (req.latitude() != null) {
+            loc.setLatitude(req.latitude());
+        }
+        if (req.longitude() != null) {
+            loc.setLongitude(req.longitude());
+        }
+
+        return AbrigoResponse.de(instituicaoRepo.save(inst));
+    }
+
     private static void exigir(String valor, String campo) {
         if (valor == null || valor.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Campo obrigatório: " + campo);
