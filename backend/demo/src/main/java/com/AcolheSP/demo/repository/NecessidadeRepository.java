@@ -16,4 +16,7 @@ public interface NecessidadeRepository extends JpaRepository<Necessidade, Intege
 
     // Garante que a necessidade pertence mesmo àquela instituição da URL
     Optional<Necessidade> findByIdAndInstituicaoId(Integer id, Integer instituicaoId);
+
+    // UC03: quantas necessidades abertas o abrigo tem (mostrado no mapa)
+    long countByInstituicaoIdAndStatus(Integer instituicaoId, StatusNecessidade status);
 }

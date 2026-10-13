@@ -145,3 +145,83 @@ SELECT 'Alimentos não perecíveis (kg)', 100, 0, 'ABERTA', id
 FROM conta WHERE email = 'abrigo.teste@acolhesp.com';
 
 -- role = admin -> só existe em conta (não tem tabela própria no diagrama)
+
+-- =====================================================================
+-- SEED EXTRA (testes do backend: mapa, doações, voluntariados, solicitações)
+-- =====================================================================
+INSERT INTO conta (keycloak_id, email, role) VALUES
+    (NULL, 'abrigo2.teste@acolhesp.com',  'abrigo'),
+    (NULL, 'abrigo3.teste@acolhesp.com',  'abrigo'),
+    (NULL, 'usuario2.teste@acolhesp.com', 'usuario'),
+    (NULL, 'usuario3.teste@acolhesp.com', 'usuario');
+
+INSERT INTO voluntario (id, nome, telefone, disponibilidade)
+SELECT id, 'Carlos Lima', '(11) 90000-0002', 'Sábados de manhã'
+FROM conta WHERE email = 'usuario2.teste@acolhesp.com';
+
+INSERT INTO voluntario (id, nome, telefone, disponibilidade)
+SELECT id, 'Ana Pereira', '(11) 90000-0003', 'Noites de segunda a sexta'
+FROM conta WHERE email = 'usuario3.teste@acolhesp.com';
+
+INSERT INTO instituicao (id, nome, cnpj, descricao, telefone, email_contato, status_verificacao)
+SELECT id, 'Casa Acolher', '98.765.432/0001-10',
+       'Casa de acolhimento com refeições e pernoite.',
+       '(11) 3000-0002', 'abrigo2.teste@acolhesp.com', 'VERIFICADA'
+FROM conta WHERE email = 'abrigo2.teste@acolhesp.com';
+
+INSERT INTO instituicao (id, nome, cnpj, descricao, telefone, email_contato, status_verificacao)
+SELECT id, 'Lar Santa Luzia', '11.222.333/0001-44',
+       'Lar para idosos (aguardando verificação).',
+       '(11) 3000-0003', 'abrigo3.teste@acolhesp.com', 'PENDENTE'
+FROM conta WHERE email = 'abrigo3.teste@acolhesp.com';
+
+INSERT INTO localizacao (endereco, cep, latitude, longitude, instituicao_id)
+SELECT 'Av. Paulista, 1000, São Paulo - SP', '01310-100', -23.563210, -46.654250, id
+FROM conta WHERE email = 'abrigo2.teste@acolhesp.com';
+
+INSERT INTO localizacao (endereco, cep, latitude, longitude, instituicao_id)
+SELECT 'Rua dos Pinheiros, 800, São Paulo - SP', '05422-001', -23.566900, -46.692000, id
+FROM conta WHERE email = 'abrigo3.teste@acolhesp.com';
+
+INSERT INTO necessidade (descricao, quantidade_solicitada, quantidade_recebida, status, instituicao_id)
+SELECT 'Roupas de inverno', 80, 20, 'ABERTA', id
+FROM conta WHERE email = 'abrigo2.teste@acolhesp.com';
+
+INSERT INTO necessidade (descricao, quantidade_solicitada, quantidade_recebida, status, instituicao_id)
+SELECT 'Produtos de higiene', 60, 0, 'ABERTA', id
+FROM conta WHERE email = 'abrigo2.teste@acolhesp.com';
+
+INSERT INTO necessidade (descricao, quantidade_solicitada, quantidade_recebida, status, instituicao_id)
+SELECT 'Leite em pó (latas)', 30, 30, 'ATENDIDA', id
+FROM conta WHERE email = 'abrigo2.teste@acolhesp.com';
+
+INSERT INTO necessidade (descricao, quantidade_solicitada, quantidade_recebida, status, instituicao_id)
+SELECT 'Fraldas geriátricas', 40, 0, 'ABERTA', id
+FROM conta WHERE email = 'abrigo3.teste@acolhesp.com';
+
+-- doações (todas do abrigo 1 / Casa Acolher, em vários status)
+INSERT INTO doacao (quantidade, status, voluntario_id, necessidade_id)
+SELECT 5, 'PENDENTE',
+       (SELECT id FROM conta WHERE email = 'usuario.teste@acolhesp.com'), n.id
+FROM necessidade n WHERE n.descricao = 'Cobertores';
+
+INSERT INTO doacao (quantidade, status, voluntario_id, necessidade_id)
+SELECT 10, 'CONFIRMADA',
+       (SELECT id FROM conta WHERE email = 'usuario2.teste@acolhesp.com'), n.id
+FROM necessidade n WHERE n.descricao = 'Roupas de inverno';
+
+INSERT INTO doacao (quantidade, status, voluntario_id, necessidade_id)
+SELECT 3, 'CANCELADA',
+       (SELECT id FROM conta WHERE email = 'usuario3.teste@acolhesp.com'), n.id
+FROM necessidade n WHERE n.descricao = 'Cobertores';
+
+-- voluntariados
+INSERT INTO voluntariado (status, voluntario_id, instituicao_id)
+SELECT 'PENDENTE',
+       (SELECT id FROM conta WHERE email = 'usuario.teste@acolhesp.com'),
+       (SELECT id FROM conta WHERE email = 'abrigo.teste@acolhesp.com');
+
+INSERT INTO voluntariado (status, data_inicio, data_fim, voluntario_id, instituicao_id)
+SELECT 'APROVADO', CURRENT_DATE + 7, CURRENT_DATE + 37,
+       (SELECT id FROM conta WHERE email = 'usuario3.teste@acolhesp.com'),
+       (SELECT id FROM conta WHERE email = 'abrigo2.teste@acolhesp.com');
