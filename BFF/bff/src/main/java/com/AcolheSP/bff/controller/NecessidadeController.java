@@ -3,6 +3,7 @@ package com.AcolheSP.bff.controller;
 import java.util.Map;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.AcolheSP.bff.service.NecessidadeService;
 
 import reactor.core.publisher.Mono;
+
 
 @RestController
 @RequestMapping("/api/instituicoes")
@@ -57,4 +59,11 @@ public class NecessidadeController {
         );
         return necessidadeService.removerNecessidade(params);
     }
+
+    // UC04: Consultar necessidades
+    @GetMapping("{instituicaoId}/necessidades")
+    public Mono<Object> consultarNecessidades(@PathVariable Integer instituicaoId) {
+        return necessidadeService.consultarNecessidades(instituicaoId);
+    }
+    
 }

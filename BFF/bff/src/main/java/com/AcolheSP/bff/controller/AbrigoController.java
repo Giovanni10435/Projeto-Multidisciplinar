@@ -54,5 +54,29 @@ public class AbrigoController {
         abrigoDados.put("id", id);
         return abrigoService.atualizarAbrigo(abrigoDados);
     }
+
+    // UC03: Listar abrigos no mapa
+    @GetMapping("/api/local/abrigos")
+    public Mono<Object> listarAbrigosMapa() {
+        return abrigoService.listarAbrigosMapa();
+    }
+
+    // UC11: Listar solicitações (doações + voluntariados) de uma instituição
+    @GetMapping("/api/instituicoes/{instituicaoId}/solicitacoes")
+    public Mono<Object> listarSolicitacoes(@PathVariable Integer instituicaoId) {
+        return abrigoService.listarSolicitacoes(instituicaoId);
+    }
+
+    // UC11: Aprovar ou recusar solicitação
+    @PutMapping("/api/instituicoes/{instituicaoId}/solicitacoes/{solicitacaoId}")
+    public Mono<Object> atualizarSolicitacao(
+        @PathVariable Integer instituicaoId,
+        @PathVariable Integer solicitacaoId,
+        @RequestBody Map<String, Object> solicitacaoDados
+    ) {
+        solicitacaoDados.put("id", solicitacaoId);
+        solicitacaoDados.put("instituicao_id", instituicaoId);
+        return abrigoService.atualizarSolicitacao(solicitacaoDados);
+    }
     
 }

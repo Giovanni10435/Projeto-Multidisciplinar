@@ -50,4 +50,13 @@ public class NecessidadeService {
             .retrieve()
             .bodyToMono(Object.class);
     }
+
+    // UC04: Consultar necessidades
+    public Mono<Object> consultarNecessidades(Integer insituicaoId) {
+        return backendWebClient
+            .get()
+            .uri("/api/instituicoes/" + insituicaoId + "/necessidades")
+            .retrieve()
+            .bodyToMono(Object.class);
+    }
 }

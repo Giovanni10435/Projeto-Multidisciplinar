@@ -69,5 +69,34 @@ public class AbrigoService {
             .bodyToMono(Object.class);
     }
 
+    // UC03: Listar abrigos no mapa
+    public Mono<Object> listarAbrigosMapa() {
+        return backendWebClient
+            .get()
+            .uri("/api/local/abrigos")
+            .retrieve()
+            .bodyToMono(Object.class);
+    }
 
+    // UC11: Listar solicitações (doações + voluntariados) de uma instituição
+    public Mono<Object> listarSolicitacoes(Integer instituicaoId) {
+        return backendWebClient
+            .get()
+            .uri("/api/instituicoes/" + instituicaoId + "/solicitacoes")
+            .retrieve()
+            .bodyToMono(Object.class);
+    }
+
+    // UC11: Aprovar/recusar solicitação
+    public Mono<Object> atualizarSolicitacao(Map<String, Object> solicitacaoDados) {
+        Integer instituicaoId = (Integer) solicitacaoDados.get("instituicao_id");
+        Integer solicitacaoId = (Integer) solicitacaoDados.get("id");
+        
+        return backendWebClient
+            .put()
+            .uri("/api/instituicoes/" + instituicaoId + "/solicitacoes/" + solicitacaoId)
+            .bodyValue(solicitacaoDados)
+            .retrieve()
+            .bodyToMono(Object.class);
+    }
 }
