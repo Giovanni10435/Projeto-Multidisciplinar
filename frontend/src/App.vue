@@ -1,5 +1,6 @@
 <template>
-  <div class="w-full h-screen relative overflow-hidden font-sans">
+  <!-- Contêiner pai com posição relativa e 100vh fixo -->
+  <div style="position: relative; width: 100vw; height: 100vh; overflow: hidden; font-family: sans-serif;">
 
     <!-- Modal de Entrada -->
     <RoleModal 
@@ -8,42 +9,58 @@
       @submitInstituicao="cadastrarInstituicao" 
     />
 
-    <!-- Mapa Leaflet com Zoom Expandido -->
+    <!-- 1. MAPA LEAFLET (Fundo em Tela Cheia) -->
     <l-map
       :center="centroMapa"
       :zoom="14"
-      :max-zoom="20"
-      :zoom-control="false"
-      class="w-full h-full z-0"
+      :max-zoom="19"
+      :min-zoom="10"
+      :max-bounds="limitesSP"
+      :options="{ zoomControl: false }"
+      style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"
       @ready="mapaPronto"
     >
-      <!-- Camada Base do Esri Light Gray -->
       <l-tile-layer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
         attribution="&copy; Esri"
-        :max-zoom="20"
+        :max-zoom="19"
         :max-native-zoom="16"
       />
-      <!-- Camada de Rótulos/Textos do Esri -->
       <l-tile-layer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-        :max-zoom="20"
+        :max-zoom="19"
         :max-native-zoom="16"
       />
 
-      <!-- Marcadores no Mapa -->
+      <!-- Botões de zoom no canto inferior direito -->
+      <l-control-zoom position="bottomright" />
+
+      <!-- Marcador da Localização do Usuário -->
+      <l-marker
+        v-if="localizacaoUsuario"
+        :lat-lng="localizacaoUsuario"
+        :icon="getIconeUsuario()"
+      >
+        <l-popup>
+          <div style="padding: 4px; font-weight: bold; color: #2563eb; font-size: 13px;">
+            📍 Você está aqui
+          </div>
+        </l-popup>
+      </l-marker>
+
+      <!-- Marcadores das Instituições no Mapa -->
       <l-marker
         v-for="item in instituicoesFiltradas"
         :key="item.id"
         :lat-lng="[item.localizacao.latitude, item.localizacao.longitude]"
         :icon="getIconeAbrigo(idSelecionado === item.id)"
-        @click="idSelecionado = item.id"
+        @click="selecionarInstituicao(item)"
       >
         <l-popup>
-          <div class="p-1 font-sans">
-            <div class="font-bold text-slate-900">{{ item.nome }}</div>
-            <div class="text-xs text-slate-500 mb-1">{{ item.localizacao.endereco }}</div>
-            <div class="text-xs font-semibold" :style="{ color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) }">
+          <div style="padding: 4px;">
+            <div style="font-weight: bold; color: #0f172a; font-size: 14px;">{{ item.nome }}</div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">{{ item.localizacao.endereco }}</div>
+            <div style="font-size: 12px; font-weight: 600;" :style="{ color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) }">
               {{ item.vagas_totais - item.vagas_ocupadas }} vagas disponíveis
             </div>
           </div>
@@ -51,70 +68,111 @@
       </l-marker>
     </l-map>
 
-    <!-- Sidebar de Busca -->
-    <div class="absolute top-4 left-4 z-[500] flex flex-col gap-3 w-80 max-h-[calc(100vh-32px)]">
-      
-      <div class="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white shadow-md border border-slate-200">
-        <svg class="w-5 h-5 stroke-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2">
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+    <!-- 2. PAINEL LATERAL ESQUERDO -->
+    <div style="position: absolute; top: 16px; left: 16px; z-index: 1000; width: 360px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px);">
+
+      <!-- BARRA DE BUSCA -->
+      <div style="display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; height: 52px; padding: 0 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); flex-shrink: 0;">
+        <svg width="20" height="20" style="flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="#94a3b8" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
         </svg>
         <input
           v-model="termoBusca"
-          placeholder="Buscar abrigo, bairro..."
-          class="w-full bg-transparent outline-none text-slate-800 text-sm placeholder:text-slate-400"
+          placeholder="Buscar abrigo, bairro ou endereço..."
+          style="width: 100%; border: none; outline: none; background: transparent; font-size: 14px; font-weight: 500; color: #1e293b;"
         />
       </div>
 
-      <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col max-h-[calc(100vh-120px)]">
-        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">🏠 Todos os abrigos</span>
-          <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
+      <!-- BARRA AZUL (Definir minha localização) -->
+      <button
+        @click="obterLocalizacaoUsuario"
+        style="display: flex; align-items: center; justify-content: flex-start; gap: 12px; box-sizing: border-box; width: 100%; height: 52px; padding: 0 20px; background: white; color: #2563eb; font-weight: 700; font-size: 14px; border: 1px solid #3b82f6; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); cursor: pointer; flex-shrink: 0;"
+      >
+        <svg width="20" height="20" style="flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="#2563eb" stroke-width="2.5">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+        </svg>
+        Definir minha localização
+      </button>
+
+      <!-- LISTA DE ABRIGOS -->
+      <div style="display: flex; flex-direction: column; flex: 1; min-height: 0; background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden;">
+
+        <!-- Cabeçalho da Lista -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;">
+          <span style="font-weight: 700; font-size: 13px; color: #1e293b;">Todos os abrigos</span>
+          <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #eff6ff; color: #2563eb;">
             {{ instituicoesFiltradas.length }} resultados
           </span>
         </div>
 
-        <div class="overflow-y-auto">
+        <!-- Conteúdo com Scroll -->
+        <div style="flex: 1; overflow-y: auto;">
           <button
             v-for="item in instituicoesFiltradas"
             :key="item.id"
-            class="w-full px-4 py-3 text-left border-b border-slate-100 flex gap-3 items-start hover:bg-slate-50 transition-colors cursor-pointer"
-            :class="{ 'bg-blue-50/60 border-l-4 border-l-blue-600': idSelecionado === item.id }"
             @click="selecionarInstituicao(item)"
+            :style="{
+              display: 'block',
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '14px',
+              textAlign: 'left',
+              background: idSelecionado === item.id ? 'rgba(239,246,255,0.7)' : 'white',
+              border: 'none',
+              borderBottom: '1px solid #f1f5f9',
+              borderLeft: idSelecionado === item.id ? '4px solid #2563eb' : '4px solid transparent',
+              cursor: 'pointer'
+            }"
           >
-            <div class="w-9 h-9 rounded-xl bg-cyan-50 border border-cyan-500 flex items-center justify-center text-base shrink-0">
-              🏠
+            <div style="font-size: 13px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.nome }}</div>
+
+            <div
+              style="font-size: 11px; font-weight: 700; margin-top: 2px;"
+              :style="{ color: item.status === 'Aberto 24h' || !item.status ? '#059669' : '#d97706' }"
+            >
+              {{ item.status || 'Aberto 24h' }}
             </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-bold text-slate-900 truncate">{{ item.nome }}</div>
-              <div class="text-xs text-slate-500 truncate mt-0.5">{{ item.localizacao.endereco }}</div>
-              
-              <!-- Barra de Vagas -->
-              <div class="mt-2 flex items-center gap-2">
-                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
-                    class="h-full rounded-full"
-                    :style="{ 
-                      width: `${(item.vagas_ocupadas / item.vagas_totais) * 100}%`, 
-                      backgroundColor: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) 
-                    }"
-                  />
-                </div>
-                <span class="text-xs font-semibold shrink-0" :style="{ color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) }">
-                  {{ item.vagas_totais - item.vagas_ocupadas }} vagas
-                </span>
+
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ item.localizacao.endereco }}
+            </div>
+
+            <!-- Barra de Vagas -->
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+              <div style="flex: 1; height: 6px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                <div
+                  :style="{
+                    height: '100%',
+                    borderRadius: '999px',
+                    width: `${(item.vagas_ocupadas / item.vagas_totais) * 100}%`,
+                    backgroundColor: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais)
+                  }"
+                />
               </div>
+              <span
+                style="font-size: 11px; font-weight: 700; flex-shrink: 0;"
+                :style="{ color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) }"
+              >
+                {{ item.vagas_totais - item.vagas_ocupadas }} vagas
+              </span>
             </div>
           </button>
-        </div>
-      </div>
 
+          <div v-if="instituicoesFiltradas.length === 0" style="padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
+            Nenhum abrigo encontrado.
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <!-- Botão Entrar -->
-    <div class="absolute top-4 right-4 z-[500]">
-      <button 
+    <!-- 3. BOTÃO ENTRAR (Flutuando no canto superior direito) -->
+    <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
+      <button
         @click="exibirModalRole = true"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-colors cursor-pointer"
+        style="display: flex; align-items: center; gap: 6px; padding: 0 20px; height: 44px; background: #2563eb; color: white; font-weight: 700; font-size: 14px; border: none; border-radius: 16px; box-shadow: 0 4px 12px rgba(37,99,235,0.35); cursor: pointer;"
       >
         Entrar →
       </button>
@@ -125,7 +183,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import { LMap, LTileLayer, LMarker, LPopup, LControlZoom } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -137,7 +195,13 @@ const instituicoes = ref(INSTITUICOES_INIT)
 const termoBusca = ref('')
 const idSelecionado = ref(null)
 const centroMapa = ref([-23.5475, -46.6361])
+const localizacaoUsuario = ref(null)
 const mapaRef = ref(null)
+
+const limitesSP = ref([
+  [-24.1000, -47.1000],
+  [-23.1000, -45.7000]
+])
 
 onMounted(() => {
   console.warn('BFF ainda não conectado. Usando dados locais do data.js')
@@ -166,6 +230,19 @@ function getIconeAbrigo(selecionado) {
   })
 }
 
+function getIconeUsuario() {
+  return L.divIcon({
+    html: `<svg width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="14" fill="#3b82f6" fill-opacity="0.25"/>
+      <circle cx="16" cy="16" r="8" fill="white" stroke="#2563eb" stroke-width="3"/>
+      <circle cx="16" cy="16" r="4" fill="#2563eb"/>
+    </svg>`,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+  })
+}
+
 function mapaPronto(map) {
   mapaRef.value = map
   nextTick(() => {
@@ -177,7 +254,26 @@ function mapaPronto(map) {
 
 function selecionarInstituicao(item) {
   idSelecionado.value = item.id
-  mapaRef.value?.flyTo([item.localizacao.latitude, item.localizacao.longitude], 18, { duration: 0.8 })
+  mapaRef.value?.flyTo([item.localizacao.latitude, item.localizacao.longitude], 16, { duration: 0.8 })
+}
+
+function obterLocalizacaoUsuario() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = [pos.coords.latitude, pos.coords.longitude]
+        localizacaoUsuario.value = coords
+        mapaRef.value?.flyTo(coords, 16, { duration: 0.8 })
+      },
+      () => {
+        const coordsPadrao = [-23.55052, -46.633308]
+        localizacaoUsuario.value = coordsPadrao
+        mapaRef.value?.flyTo(coordsPadrao, 16, { duration: 0.8 })
+      }
+    )
+  } else {
+    alert('Geolocalização não é suportada pelo seu navegador.')
+  }
 }
 
 function definirPapel(role) {
