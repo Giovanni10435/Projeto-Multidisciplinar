@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 
 // UC07 - corpo do POST /api/abrigos (o BFF repassa o JSON do front).
 // Aceita camelCase e snake_case (ex.: emailContato ou email_contato).
-public record AbrigoRequest(
+public record AbrigoRequest (
         String email,
         String nome,
         String cnpj,
