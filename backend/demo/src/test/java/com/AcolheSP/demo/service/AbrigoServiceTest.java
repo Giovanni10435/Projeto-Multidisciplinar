@@ -1,48 +1,44 @@
 package com.AcolheSP.demo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.AcolheSP.demo.dto.AbrigoDetalheResponse;
 import com.AcolheSP.demo.dto.AbrigoRequest;
 import com.AcolheSP.demo.dto.AbrigoResponse;
 import com.AcolheSP.demo.model.Instituicao;
-import com.AcolheSP.demo.model.Localizacao;
-import com.AcolheSP.demo.model.StatusNecessidade;
 import com.AcolheSP.demo.repository.ContaRepository;
 import com.AcolheSP.demo.repository.InstituicaoRepository;
-import com.AcolheSP.demo.repository.NecessidadeRepository;
 
-@ExtendWith(MockitoExtension.class)
+import jakarta.persistence.EntityManager;
+
+@SpringBootTest
+@Transactional
 class AbrigoServiceTest {
 
-    @Mock
+    @Autowired
+    private AbrigoService abrigoService;
+
+    @Autowired
     private InstituicaoRepository instituicaoRepo;
 
-    @Mock
+    @Autowired
     private ContaRepository contaRepo;
 
-    @Mock
-    private NecessidadeRepository necessidadeRepo;
-
-    @InjectMocks
-    private AbrigoService abrigoService;
+    @Autowired
+    private EntityManager entityManager;
 
     private AbrigoRequest criarRequestValido() {
         return new AbrigoRequest(
@@ -59,25 +55,61 @@ class AbrigoServiceTest {
         );
     }
 
+    private void sincronizarELimparContexto() {
+        entityManager.flush();
+        entityManager.clear();
+    }
+
     @Test
     void deveCadastrarAbrigoComDadosValidos() {
         AbrigoRequest request = criarRequestValido();
 
-        when(contaRepo.existsByEmail(request.email()))
-                .thenReturn(false);
-
-        when(instituicaoRepo.existsByCnpj(request.cnpj()))
-                .thenReturn(false);
-
-        when(instituicaoRepo.save(any(Instituicao.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        long totalContasAntes = contaRepo.count();
+        long totalAbrigosAntes = instituicaoRepo.count();
 
         AbrigoResponse response = abrigoService.cadastrarAbrigo(request);
 
+        sincronizarELimparContexto();
+
+        assertNotNull(response.id());
         assertEquals(request.nome(), response.nome());
         assertEquals(request.emailContato(), response.emailContato());
 
-        verify(instituicaoRepo).save(any(Instituicao.class));
+        Instituicao salva = instituicaoRepo.findById(response.id())
+                .orElseThrow();
+
+        assertEquals(request.email(), salva.getEmail());
+        assertEquals(request.nome(), salva.getNome());
+        assertEquals(request.cnpj(), salva.getCnpj());
+        assertEquals(request.descricao(), salva.getDescricao());
+        assertEquals(request.telefone(), salva.getTelefone());
+        assertEquals(request.emailContato(), salva.getEmailContato());
+
+        assertNotNull(salva.getLocalizacao());
+        assertEquals(
+                request.endereco(),
+                salva.getLocalizacao().getEndereco()
+        );
+        assertEquals(
+                request.cep(),
+                salva.getLocalizacao().getCep()
+        );
+
+        assertEquals(
+                0,
+                request.latitude().compareTo(
+                        salva.getLocalizacao().getLatitude()
+                )
+        );
+        assertEquals(
+                0,
+                request.longitude().compareTo(
+                        salva.getLocalizacao().getLongitude()
+                )
+        );
+
+        assertEquals(totalContasAntes + 1, contaRepo.count());
+        assertEquals(totalAbrigosAntes + 1, instituicaoRepo.count());
     }
 
     @Test
@@ -95,13 +127,18 @@ class AbrigoServiceTest {
                 BigDecimal.valueOf(-46.6333)
         );
 
+        long totalContasAntes = contaRepo.count();
+        long totalAbrigosAntes = instituicaoRepo.count();
+
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> abrigoService.cadastrarAbrigo(request)
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(instituicaoRepo, never()).save(any());
+        assertEquals(totalContasAntes, contaRepo.count());
+        assertEquals(totalAbrigosAntes, instituicaoRepo.count());
+        assertFalse(contaRepo.existsByEmail(request.email()));
     }
 
     @Test
@@ -119,81 +156,121 @@ class AbrigoServiceTest {
                 null
         );
 
+        long totalContasAntes = contaRepo.count();
+        long totalAbrigosAntes = instituicaoRepo.count();
+
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> abrigoService.cadastrarAbrigo(request)
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        verify(instituicaoRepo, never()).save(any());
+        assertEquals(totalContasAntes, contaRepo.count());
+        assertEquals(totalAbrigosAntes, instituicaoRepo.count());
+        assertFalse(contaRepo.existsByEmail(request.email()));
     }
 
     @Test
     void naoDeveCadastrarAbrigoComEmailJaExistente() {
-        AbrigoRequest request = criarRequestValido();
+        AbrigoRequest primeiroRequest = criarRequestValido();
 
-        when(contaRepo.existsByEmail(request.email()))
-                .thenReturn(true);
+        abrigoService.cadastrarAbrigo(primeiroRequest);
+        sincronizarELimparContexto();
+
+        // Mesmo e-mail, mas sem repetir o CNPJ:
+        // a intenção é isolar a regra de duplicidade do e-mail.
+        AbrigoRequest requestDuplicado = new AbrigoRequest(
+                primeiroRequest.email(),
+                "Outro abrigo",
+                null,
+                primeiroRequest.descricao(),
+                primeiroRequest.telefone(),
+                primeiroRequest.emailContato(),
+                primeiroRequest.endereco(),
+                primeiroRequest.cep(),
+                primeiroRequest.latitude(),
+                primeiroRequest.longitude()
+        );
+
+        long totalContasAntes = contaRepo.count();
+        long totalAbrigosAntes = instituicaoRepo.count();
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> abrigoService.cadastrarAbrigo(request)
+                () -> abrigoService.cadastrarAbrigo(requestDuplicado)
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        verify(instituicaoRepo, never()).save(any());
+        assertEquals(totalContasAntes, contaRepo.count());
+        assertEquals(totalAbrigosAntes, instituicaoRepo.count());
     }
 
     @Test
     void naoDeveCadastrarAbrigoComCnpjJaExistente() {
-        AbrigoRequest request = criarRequestValido();
+        AbrigoRequest primeiroRequest = criarRequestValido();
 
-        when(contaRepo.existsByEmail(request.email()))
-                .thenReturn(false);
+        abrigoService.cadastrarAbrigo(primeiroRequest);
+        sincronizarELimparContexto();
 
-        when(instituicaoRepo.existsByCnpj(request.cnpj()))
-                .thenReturn(true);
+        // Outro e-mail para que a execução chegue à validação do CNPJ.
+        AbrigoRequest requestDuplicado = new AbrigoRequest(
+                "outro.yago@exemplo.com",
+                "Outro abrigo",
+                primeiroRequest.cnpj(),
+                primeiroRequest.descricao(),
+                primeiroRequest.telefone(),
+                "outro.yago@exemplo.com",
+                primeiroRequest.endereco(),
+                primeiroRequest.cep(),
+                primeiroRequest.latitude(),
+                primeiroRequest.longitude()
+        );
+
+        long totalContasAntes = contaRepo.count();
+        long totalAbrigosAntes = instituicaoRepo.count();
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> abrigoService.cadastrarAbrigo(request)
+                () -> abrigoService.cadastrarAbrigo(requestDuplicado)
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        verify(instituicaoRepo, never()).save(any());
+        assertEquals(totalContasAntes, contaRepo.count());
+        assertEquals(totalAbrigosAntes, instituicaoRepo.count());
+        assertFalse(contaRepo.existsByEmail(requestDuplicado.email()));
     }
 
     @Test
     void deveDetalharAbrigoExistente() {
-        Instituicao instituicao = new Instituicao();
-        instituicao.setId(1);
-        instituicao.setNome("Abrigo do Yago da Silva");
-        instituicao.setLocalizacao(new Localizacao());
+        AbrigoResponse cadastrado =
+                abrigoService.cadastrarAbrigo(criarRequestValido());
 
-        when(instituicaoRepo.findById(1))
-                .thenReturn(Optional.of(instituicao));
+        sincronizarELimparContexto();
 
-        when(necessidadeRepo.findByInstituicaoIdAndStatus(
-                1, StatusNecessidade.ABERTA))
-                .thenReturn(List.of());
+        AbrigoDetalheResponse response =
+                abrigoService.detalharAbrigo(cadastrado.id());
 
-        AbrigoDetalheResponse response = abrigoService.detalharAbrigo(1);
-
+        assertEquals(cadastrado.id(), response.abrigo().id());
         assertEquals(
                 "Abrigo do Yago da Silva",
                 response.abrigo().nome()
         );
-        assertEquals(0, response.necessidades().size());
+
+        // O abrigo foi criado neste teste, sem necessidades associadas.
+        assertTrue(response.necessidades().isEmpty());
     }
 
     @Test
     void naoDeveDetalharAbrigoInexistente() {
-        when(instituicaoRepo.findById(999))
-                .thenReturn(Optional.empty());
+        // IDs gerados pelo banco são positivos neste esquema.
+        // A consulta confirma a ausência antes de testar o service.
+        Integer idInexistente = -1;
+
+        assertFalse(instituicaoRepo.existsById(idInexistente));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> abrigoService.detalharAbrigo(999)
+                () -> abrigoService.detalharAbrigo(idInexistente)
         );
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
@@ -201,12 +278,14 @@ class AbrigoServiceTest {
 
     @Test
     void deveAtualizarNomeDoAbrigo() {
-        Instituicao instituicao = new Instituicao();
-        instituicao.setId(1);
-        instituicao.setNome("Nome antigo");
-        instituicao.setLocalizacao(new Localizacao());
+        AbrigoRequest requestOriginal = criarRequestValido();
 
-        AbrigoRequest request = new AbrigoRequest(
+        AbrigoResponse cadastrado =
+                abrigoService.cadastrarAbrigo(requestOriginal);
+
+        sincronizarELimparContexto();
+
+        AbrigoRequest requestAtualizacao = new AbrigoRequest(
                 null,
                 "Nome novo",
                 null,
@@ -219,15 +298,30 @@ class AbrigoServiceTest {
                 null
         );
 
-        when(instituicaoRepo.findById(1))
-                .thenReturn(Optional.of(instituicao));
+        AbrigoResponse response = abrigoService.atualizarAbrigo(
+                cadastrado.id(),
+                requestAtualizacao
+        );
 
-        when(instituicaoRepo.save(any(Instituicao.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        sincronizarELimparContexto();
 
-        AbrigoResponse response = abrigoService.atualizarAbrigo(1, request);
+        Instituicao atualizada = instituicaoRepo.findById(cadastrado.id())
+                .orElseThrow();
 
         assertEquals("Nome novo", response.nome());
-        verify(instituicaoRepo).save(instituicao);
+        assertEquals("Nome novo", atualizada.getNome());
+
+        // Atualizar o nome não deve apagar os demais dados.
+        assertEquals(requestOriginal.email(), atualizada.getEmail());
+        assertEquals(requestOriginal.cnpj(), atualizada.getCnpj());
+        assertEquals(
+                requestOriginal.emailContato(),
+                atualizada.getEmailContato()
+        );
+        assertNotNull(atualizada.getLocalizacao());
+        assertEquals(
+                requestOriginal.endereco(),
+                atualizada.getLocalizacao().getEndereco()
+        );
     }
 }
