@@ -1,79 +1,126 @@
 <template>
-  <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-    <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-lg w-full flex flex-col items-center border border-slate-100 my-8">
-      
-      <div class="text-4xl mb-2">🏠</div>
-      <h2 class="text-2xl font-bold text-slate-900 text-center">Como você quer entrar?</h2>
-      <p class="text-slate-500 text-sm mt-1 mb-6 text-center">Escolha seu perfil ou cadastre sua instituição</p>
+  <!-- Fundo escurecido (clicar fora também fecha) -->
+  <div
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); overflow-y: auto;"
+    @click.self="emit('close')"
+  >
+    <!-- Card -->
+    <div
+      style="position: relative; box-sizing: border-box; width: 460px; max-width: 100%; margin: auto; padding: 40px 36px 36px; background: white; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25); font-family: sans-serif;"
+    >
+      <!-- Botão X -->
+      <button
+        type="button"
+        @click="emit('close')"
+        aria-label="Fechar"
+        style="position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 999px; cursor: pointer;"
+        @mouseover="$event.currentTarget.style.background = '#f1f5f9'"
+        @mouseleave="$event.currentTarget.style.background = 'transparent'"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+
+      <!-- Cabeçalho -->
+      <div style="text-align: center;">
+        <div style="font-size: 44px; line-height: 1;">🏡</div>
+        <h2 style="margin: 16px 0 6px; font-size: 24px; font-weight: 800; color: #0f172a;">
+          Como você quer entrar?
+        </h2>
+        <p style="margin: 0 0 28px; font-size: 14px; color: #64748b;">
+          Escolha seu perfil para continuar
+        </p>
+      </div>
 
       <!-- Seleção de Perfil Inicial -->
-      <div v-if="!abaSelecionada" class="w-full flex flex-col gap-4">
-        <button 
+      <div v-if="!abaSelecionada">
+        <!-- Usuário / Voluntário -->
+        <button
+          type="button"
           @click="selecionar('usuario')"
-          class="w-full p-4 rounded-2xl text-left border-2 border-blue-600 bg-blue-50/50 hover:bg-blue-50 transition-all flex items-center gap-4 cursor-pointer"
+          style="display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: 100%; padding: 18px 20px; margin-bottom: 14px; text-align: left; background: #eff6ff; border: 2px solid #2563eb; border-radius: 14px; cursor: pointer;"
         >
-          <div class="text-3xl shrink-0">🙋‍♀️</div>
-          <div>
-            <div class="font-bold text-slate-900">Usuário / Voluntário</div>
-            <div class="text-xs text-slate-500 mt-0.5">Buscar abrigos, registrar visitas e oferecer ajuda</div>
-          </div>
+          <span style="font-size: 34px; line-height: 1; flex-shrink: 0;">🙋‍♀️</span>
+          <span style="display: block;">
+            <span style="display: block; font-size: 16px; font-weight: 800; color: #0f172a;">Usuário / Voluntário</span>
+            <span style="display: block; margin-top: 4px; font-size: 13px; color: #475569; line-height: 1.4;">
+              Buscar abrigos, registrar visitas e oferecer ajuda
+            </span>
+          </span>
         </button>
 
-        <button 
+        <!-- Abrigo / Gestor -->
+        <button
+          type="button"
           @click="abaSelecionada = 'abrigo'"
-          class="w-full p-4 rounded-2xl text-left border-2 border-cyan-500 bg-cyan-50/30 hover:bg-cyan-50/70 transition-all flex items-center gap-4 cursor-pointer"
+          style="display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: 100%; padding: 18px 20px; text-align: left; background: #ecfeff; border: 2px solid #0891b2; border-radius: 14px; cursor: pointer;"
         >
-          <div class="text-3xl shrink-0">🏡</div>
-          <div>
-            <div class="font-bold text-slate-900">Abrigo / Gestor</div>
-            <div class="text-xs text-slate-500 mt-0.5">Cadastrar ou gerenciar seu abrigo e doações</div>
-          </div>
+          <span style="font-size: 34px; line-height: 1; flex-shrink: 0;">🏠</span>
+          <span style="display: block;">
+            <span style="display: block; font-size: 16px; font-weight: 800; color: #0f172a;">Abrigo / Gestor</span>
+            <span style="display: block; margin-top: 4px; font-size: 13px; color: #475569; line-height: 1.4;">
+              Gerenciar seu abrigo, doações e horários de voluntários
+            </span>
+          </span>
         </button>
       </div>
 
       <!-- Formulário com os campos da Tabela 'instituicao' e 'localizacao' -->
-      <form v-else-if="abaSelecionada === 'abrigo'" @submit.prevent="salvarInstituicao" class="w-full flex flex-col gap-3">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="font-bold text-slate-900">Dados da Instituição</h3>
-          <button type="button" @click="abaSelecionada = null" class="text-xs text-blue-600 font-semibold">← Voltar</button>
+      <form
+        v-else-if="abaSelecionada === 'abrigo'"
+        @submit.prevent="salvarInstituicao"
+        style="display: flex; flex-direction: column; gap: 12px;"
+      >
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a;">Dados da Instituição</h3>
+          <button
+            type="button"
+            @click="abaSelecionada = null"
+            style="background: none; border: none; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer;"
+          >
+            ← Voltar
+          </button>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Nome da Instituição (nome)</label>
-          <input v-model="formInstituicao.nome" required type="text" placeholder="Ex: Abrigo Esperança" class="w-full px-3 py-2 border rounded-xl text-sm" />
+          <label :style="estiloLabel">Nome da Instituição</label>
+          <input v-model="formInstituicao.nome" required type="text" placeholder="Ex: Abrigo Esperança" :style="estiloInput" />
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">CNPJ (cnpj)</label>
-            <input v-model="formInstituicao.cnpj" required type="text" placeholder="00.000.000/0001-00" class="w-full px-3 py-2 border rounded-xl text-sm" />
+            <label :style="estiloLabel">CNPJ</label>
+            <input v-model="formInstituicao.cnpj" required type="text" placeholder="00.000.000/0001-00" :style="estiloInput" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Telefone (telefone)</label>
-            <input v-model="formInstituicao.telefone" required type="text" placeholder="(11) 90000-0000" class="w-full px-3 py-2 border rounded-xl text-sm" />
+            <label :style="estiloLabel">Telefone</label>
+            <input v-model="formInstituicao.telefone" required type="text" placeholder="(11) 90000-0000" :style="estiloInput" />
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">E-mail de Contato (email_contato)</label>
-          <input v-model="formInstituicao.email_contato" required type="email" placeholder="contato@abrigo.com" class="w-full px-3 py-2 border rounded-xl text-sm" />
+          <label :style="estiloLabel">E-mail de Contato</label>
+          <input v-model="formInstituicao.email_contato" required type="email" placeholder="contato@abrigo.com" :style="estiloInput" />
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Endereço Completo (endereco)</label>
-          <input v-model="formInstituicao.localizacao.endereco" required type="text" placeholder="Rua, número, bairro - Cidade/UF" class="w-full px-3 py-2 border rounded-xl text-sm" />
+          <label :style="estiloLabel">Endereço Completo</label>
+          <input v-model="formInstituicao.localizacao.endereco" required type="text" placeholder="Rua, número, bairro - Cidade/UF" :style="estiloInput" />
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Descrição (descricao)</label>
-          <textarea v-model="formInstituicao.descricao" rows="2" placeholder="Descreva os serviços do abrigo..." class="w-full px-3 py-2 border rounded-xl text-sm"></textarea>
+          <label :style="estiloLabel">Descrição</label>
+          <textarea v-model="formInstituicao.descricao" rows="2" placeholder="Descreva os serviços do abrigo..." :style="estiloInput"></textarea>
         </div>
 
-        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 rounded-xl text-sm mt-2 transition-colors">
+        <button
+          type="submit"
+          style="width: 100%; margin-top: 6px; padding: 12px 0; background: #0891b2; color: white; font-size: 14px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;"
+        >
           Cadastrar / Entrar como Gestor
         </button>
       </form>
-
     </div>
   </div>
 </template>
@@ -81,8 +128,11 @@
 <script setup>
 import { ref, reactive } from 'vue'
 
-const emit = defineEmits(['select', 'submitInstituicao'])
+const emit = defineEmits(['select', 'submitInstituicao', 'close'])
 const abaSelecionada = ref(null)
+
+const estiloLabel = 'display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #334155;'
+const estiloInput = 'box-sizing: border-box; width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; color: #1e293b; background: white; border: 1px solid #cbd5e1; border-radius: 12px; outline: none; resize: vertical;'
 
 const formInstituicao = reactive({
   nome: '',

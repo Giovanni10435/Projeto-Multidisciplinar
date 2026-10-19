@@ -6,7 +6,19 @@
     <RoleModal 
       v-if="exibirModalRole" 
       @select="definirPapel"
+      @close="exibirModalRole = false"
       @submitInstituicao="cadastrarInstituicao" 
+    />
+
+    <!-- Modal Minha Conta (Usuário / Voluntário) -->
+    <ContaUsuario
+      v-if="exibirMinhaConta"
+      :perfil="perfilUsuario"
+      :pesquisas="pesquisasRecentes"
+      :abrigos="abrigosVisitados"
+      @close="exibirMinhaConta = false"
+      @salvar="salvarPerfil"
+      @sair="sairDaConta"
     />
 
     <!-- 1. MAPA LEAFLET (Fundo em Tela Cheia) -->
@@ -71,7 +83,7 @@
     <!-- 2. PAINEL LATERAL ESQUERDO -->
     <div style="position: absolute; top: 16px; left: 16px; z-index: 1000; width: 360px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px);">
 
-      <!-- BARRA DE BUSCA -->
+      <!-- BARRA VERMELHA (Busca) -->
       <div style="display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; height: 52px; padding: 0 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); flex-shrink: 0;">
         <svg width="20" height="20" style="flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="#94a3b8" stroke-width="2.5">
           <circle cx="11" cy="11" r="8" />
@@ -79,7 +91,9 @@
         </svg>
         <input
           v-model="termoBusca"
-          placeholder="Buscar abrigo, bairro ou endereço..."
+          @keyup.enter="registrarPesquisa"
+          @blur="registrarPesquisa"
+          placeholder="Buscar abrigo, bairro..."
           style="width: 100%; border: none; outline: none; background: transparent; font-size: 14px; font-weight: 500; color: #1e293b;"
         />
       </div>
@@ -96,7 +110,7 @@
         Definir minha localização
       </button>
 
-      <!-- LISTA DE ABRIGOS -->
+      <!-- ÁREA VERDE (Lista de abrigos) -->
       <div style="display: flex; flex-direction: column; flex: 1; min-height: 0; background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden;">
 
         <!-- Cabeçalho da Lista -->
@@ -170,7 +184,23 @@
 
     <!-- 3. BOTÃO ENTRAR (Flutuando no canto superior direito) -->
     <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
+      <!-- Conta salva: abre as informações do perfil -->
       <button
+        v-if="perfilUsuario"
+        @click="exibirMinhaConta = true"
+        style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px 0 8px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); cursor: pointer;"
+      >
+        <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #dbeafe; color: #2563eb; font-size: 14px; font-weight: 800; border-radius: 999px;">
+          {{ (perfilUsuario.nome || '?').charAt(0).toUpperCase() }}
+        </span>
+        <span style="max-width: 140px; font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ perfilUsuario.nome }}
+        </span>
+      </button>
+
+      <!-- Sem conta: botão Entrar -->
+      <button
+        v-else
         @click="exibirModalRole = true"
         style="display: flex; align-items: center; gap: 6px; padding: 0 20px; height: 44px; background: #2563eb; color: white; font-weight: 700; font-size: 14px; border: none; border-radius: 16px; box-shadow: 0 4px 12px rgba(37,99,235,0.35); cursor: pointer;"
       >
@@ -188,9 +218,14 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import RoleModal from './components/RoleModal.vue'
+import ContaUsuario from './components/ContaUsuario.vue'
 import { INSTITUICOES_INIT, calcularCorOcupacao } from './data'
 
 const exibirModalRole = ref(false)
+const exibirMinhaConta = ref(false)
+const perfilUsuario = ref(null)
+const pesquisasRecentes = ref([])
+const abrigosVisitados = ref([])
 const instituicoes = ref(INSTITUICOES_INIT)
 const termoBusca = ref('')
 const idSelecionado = ref(null)
@@ -254,6 +289,7 @@ function mapaPronto(map) {
 
 function selecionarInstituicao(item) {
   idSelecionado.value = item.id
+  registrarAbrigoVisitado(item)
   mapaRef.value?.flyTo([item.localizacao.latitude, item.localizacao.longitude], 16, { duration: 0.8 })
 }
 
@@ -278,7 +314,42 @@ function obterLocalizacaoUsuario() {
 
 function definirPapel(role) {
   exibirModalRole.value = false
+  if (role === 'usuario') {
+    exibirMinhaConta.value = true
+    return
+  }
   alert(`Papel selecionado: ${role}`)
+}
+
+function salvarPerfil(dados) {
+  perfilUsuario.value = dados
+}
+
+function sairDaConta() {
+  perfilUsuario.value = null
+  exibirMinhaConta.value = false
+}
+
+function registrarPesquisa() {
+  const termo = termoBusca.value.trim()
+  if (termo.length < 2) return
+  // Remove repetidas, coloca a mais recente no topo e guarda no máximo 5
+  pesquisasRecentes.value = [
+    { termo, hora: horaAtual() },
+    ...pesquisasRecentes.value.filter(p => p.termo.toLowerCase() !== termo.toLowerCase())
+  ].slice(0, 5)
+}
+
+function registrarAbrigoVisitado(item) {
+  // Remove repetidos, coloca o mais recente no topo e guarda no máximo 5
+  abrigosVisitados.value = [
+    { id: item.id, nome: item.nome, hora: horaAtual() },
+    ...abrigosVisitados.value.filter(a => a.id !== item.id)
+  ].slice(0, 5)
+}
+
+function horaAtual() {
+  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
 async function cadastrarInstituicao(dados) {
