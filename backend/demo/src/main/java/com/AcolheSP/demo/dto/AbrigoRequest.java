@@ -16,5 +16,12 @@ public record AbrigoRequest (
         String endereco,
         String cep,
         BigDecimal latitude,
-        BigDecimal longitude) {
+        BigDecimal longitude,
+        String senha) {
+
+    public AbrigoRequest(String email, String nome, String cnpj, String descricao, String telefone,
+            String emailContato, String endereco, String cep, BigDecimal latitude, BigDecimal longitude) {
+        this(email, nome, cnpj, descricao, telefone, emailContato, endereco, cep, latitude, longitude, null);
+    }
 }
+

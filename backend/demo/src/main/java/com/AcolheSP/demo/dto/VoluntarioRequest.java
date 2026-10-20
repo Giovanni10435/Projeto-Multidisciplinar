@@ -1,9 +1,13 @@
 package com.AcolheSP.demo.dto;
 
-// Cadastro de voluntário/usuário (RF01) - role "usuario"
 public record VoluntarioRequest(
         String email,
         String nome,
         String telefone,
-        String disponibilidade) {
+        String disponibilidade,
+        String senha) {
+
+    public VoluntarioRequest(String email, String nome, String telefone, String disponibilidade) {
+        this(email, nome, telefone, disponibilidade, null);
+    }
 }

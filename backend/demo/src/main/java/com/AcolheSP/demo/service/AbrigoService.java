@@ -25,12 +25,14 @@ public class AbrigoService {
     private final InstituicaoRepository instituicaoRepo;
     private final ContaRepository contaRepo;
     private final NecessidadeRepository necessidadeRepo;
+    private final PasswordHasher passwordHasher;
 
     public AbrigoService(InstituicaoRepository instituicaoRepo, ContaRepository contaRepo,
-            NecessidadeRepository necessidadeRepo) {
+            NecessidadeRepository necessidadeRepo, PasswordHasher passwordHasher) {
         this.instituicaoRepo = instituicaoRepo;
         this.contaRepo = contaRepo;
         this.necessidadeRepo = necessidadeRepo;
+        this.passwordHasher = passwordHasher;
     }
 
     // UC07 - Cadastrar abrigo
@@ -52,8 +54,11 @@ public class AbrigoService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe um abrigo com esse CNPJ");
         }
 
+        String senhaHash = passwordHasher.hashDaNovaSenha(req.senha());
+
         var inst = new Instituicao();
         inst.setEmail(email);
+        inst.setSenhaHash(senhaHash);
         inst.setRole("abrigo");
         inst.setAtivo(true);
         inst.setNome(req.nome());

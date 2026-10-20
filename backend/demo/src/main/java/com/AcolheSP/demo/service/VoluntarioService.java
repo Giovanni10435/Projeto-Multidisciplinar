@@ -16,10 +16,13 @@ public class VoluntarioService {
 
     private final VoluntarioRepository voluntarioRepo;
     private final ContaRepository contaRepo;
+    private final PasswordHasher passwordHasher;
 
-    public VoluntarioService(VoluntarioRepository voluntarioRepo, ContaRepository contaRepo) {
+    public VoluntarioService(VoluntarioRepository voluntarioRepo, ContaRepository contaRepo,
+            PasswordHasher passwordHasher) {
         this.voluntarioRepo = voluntarioRepo;
         this.contaRepo = contaRepo;
+        this.passwordHasher = passwordHasher;
     }
 
     // RF01 - Cadastrar voluntário (usuário)
@@ -31,8 +34,11 @@ public class VoluntarioService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe uma conta com esse email");
         }
 
+        String senhaHash = passwordHasher.hashDaNovaSenha(req.senha());
+
         var v = new Voluntario();
         v.setEmail(req.email());
+        v.setSenhaHash(senhaHash);
         v.setRole("usuario");
         v.setAtivo(true);
         v.setNome(req.nome());

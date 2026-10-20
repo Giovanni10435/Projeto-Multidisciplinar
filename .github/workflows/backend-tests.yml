@@ -2,27 +2,28 @@ name: Backend Tests
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
     paths:
       - "backend/**"
       - "database/**"
       - ".github/workflows/backend-tests.yml"
-
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
     paths:
       - "backend/**"
       - "database/**"
       - ".github/workflows/backend-tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Run Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -66,4 +67,29 @@ jobs:
           SPRING_DATASOURCE_USERNAME: test
           SPRING_DATASOURCE_PASSWORD: test
           SPRING_JPA_HIBERNATE_DDL_AUTO: none
-        run: ./mvnw clean test
+        run: |
+          chmod +x mvnw
+          ./mvnw -B clean test
+
+      - name: Coverage summary
+        if: always()
+        working-directory: backend/demo
+        run: |
+          CSV=target/site/jacoco/jacoco.csv
+          if [ -f "$CSV" ]; then
+            awk -F, 'NR>1 {missed+=$8; covered+=$9} END {
+              total=missed+covered;
+              pct=(total>0)?covered*100/total:0;
+              printf "### Cobertura de linhas: %.1f%% (%d de %d)\n", pct, covered, total
+            }' "$CSV" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-reports
+          path: |
+            backend/demo/target/surefire-reports
+            backend/demo/target/site/jacoco
+          if-no-files-found: ignore
