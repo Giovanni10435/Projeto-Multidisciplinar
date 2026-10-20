@@ -7,7 +7,18 @@
       v-if="exibirModalRole" 
       @select="definirPapel"
       @close="exibirModalRole = false"
+      @usuarioAutenticado="usuarioAutenticado"
+      @gestorAutenticado="gestorAutenticado"
       @submitInstituicao="cadastrarInstituicao" 
+    />
+
+    <!-- Modal do Gestor (Perfil / Doações / Voluntários) -->
+    <ContaGestor
+      v-if="exibirContaGestor && instituicaoGestor"
+      :instituicao="instituicaoGestor"
+      @close="exibirContaGestor = false"
+      @atualizar="atualizarInstituicao(instituicaoGestor.id, $event)"
+      @sair="sairGestor"
     />
 
     <!-- Modal Minha Conta (Usuário / Voluntário) -->
@@ -198,6 +209,20 @@
         </span>
       </button>
 
+      <!-- Gestor logado: abre o painel do abrigo -->
+      <button
+        v-else-if="instituicaoGestor"
+        @click="exibirContaGestor = true"
+        style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px 0 8px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); cursor: pointer;"
+      >
+        <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #cffafe; color: #0891b2; font-size: 14px; font-weight: 800; border-radius: 999px;">
+          {{ (instituicaoGestor.nome || '?').charAt(0).toUpperCase() }}
+        </span>
+        <span style="max-width: 140px; font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ instituicaoGestor.nome }}
+        </span>
+      </button>
+
       <!-- Sem conta: botão Entrar -->
       <button
         v-else
@@ -219,11 +244,17 @@ import 'leaflet/dist/leaflet.css'
 
 import RoleModal from './components/RoleModal.vue'
 import ContaUsuario from './components/ContaUsuario.vue'
+import ContaGestor from './components/ContaGestor.vue'
+import { atualizarPerfil } from './auth'
 import { INSTITUICOES_INIT, calcularCorOcupacao } from './data'
 
 const exibirModalRole = ref(false)
 const exibirMinhaConta = ref(false)
 const perfilUsuario = ref(null)
+const contaUsuarioId = ref(null)
+const exibirContaGestor = ref(false)
+const contaGestorId = ref(null)
+const instituicaoGestorId = ref(null)
 const pesquisasRecentes = ref([])
 const abrigosVisitados = ref([])
 const instituicoes = ref(INSTITUICOES_INIT)
@@ -250,6 +281,11 @@ const instituicoesFiltradas = computed(() => {
     i.localizacao.endereco.toLowerCase().includes(q)
   )
 })
+
+// Abrigo do gestor que está logado (null se não houver)
+const instituicaoGestor = computed(
+  () => instituicoes.value.find(i => i.id === instituicaoGestorId.value) ?? null
+)
 
 function getIconeAbrigo(selecionado) {
   const size = selecionado ? 44 : 36
@@ -323,11 +359,46 @@ function definirPapel(role) {
 
 function salvarPerfil(dados) {
   perfilUsuario.value = dados
+  if (contaUsuarioId.value !== null) atualizarPerfil(contaUsuarioId.value, dados)
 }
 
 function sairDaConta() {
   perfilUsuario.value = null
+  contaUsuarioId.value = null
   exibirMinhaConta.value = false
+}
+
+// Chamado quando o usuário faz login (novo = false) ou cria a conta (novo = true)
+function usuarioAutenticado({ id, perfil, novo }) {
+  contaUsuarioId.value = id
+  perfilUsuario.value = perfil
+  exibirModalRole.value = false
+  if (novo) exibirMinhaConta.value = true
+}
+
+// Chamado quando o gestor faz login
+function gestorAutenticado({ id, instituicaoId }) {
+  contaGestorId.value = id
+  instituicaoGestorId.value = instituicaoId
+  exibirModalRole.value = false
+}
+
+// Atualiza qualquer campo do abrigo (perfil, doações, horários de voluntários)
+function atualizarInstituicao(id, campos) {
+  const i = instituicoes.value.findIndex(x => x.id === id)
+  if (i === -1) return
+  const atual = instituicoes.value[i]
+  instituicoes.value[i] = {
+    ...atual,
+    ...campos,
+    localizacao: { ...atual.localizacao, ...(campos.localizacao || {}) }
+  }
+}
+
+function sairGestor() {
+  contaGestorId.value = null
+  instituicaoGestorId.value = null
+  exibirContaGestor.value = false
 }
 
 function registrarPesquisa() {
@@ -352,13 +423,22 @@ function horaAtual() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-async function cadastrarInstituicao(dados) {
+function cadastrarInstituicao(dados, contaId) {
+  const novoId = Date.now()
   instituicoes.value.push({
-    id: Date.now(),
+    id: novoId,
     ...dados,
     vagas_totais: 20,
-    vagas_ocupadas: 0
+    vagas_ocupadas: 0,
+    doacoes: [],
+    horarios_voluntarios: []
   })
+
+  // Liga a conta do gestor ao abrigo recém-criado e abre o painel dele
+  atualizarPerfil(contaId, { instituicaoId: novoId })
+  contaGestorId.value = contaId
+  instituicaoGestorId.value = novoId
   exibirModalRole.value = false
+  exibirContaGestor.value = true
 }
 </script>

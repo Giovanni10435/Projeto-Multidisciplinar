@@ -22,23 +22,22 @@
         </svg>
       </button>
 
-      <!-- Cabeçalho -->
-      <div style="text-align: center;">
-        <div style="font-size: 44px; line-height: 1;">🏡</div>
-        <h2 style="margin: 16px 0 6px; font-size: 24px; font-weight: 800; color: #0f172a;">
-          Como você quer entrar?
-        </h2>
-        <p style="margin: 0 0 28px; font-size: 14px; color: #64748b;">
-          Escolha seu perfil para continuar
-        </p>
-      </div>
+      <!-- ============ PASSO 1: ESCOLHER PERFIL ============ -->
+      <div v-if="!perfilEscolhido">
+        <div style="text-align: center;">
+          <div style="font-size: 44px; line-height: 1;">🏡</div>
+          <h2 style="margin: 16px 0 6px; font-size: 24px; font-weight: 800; color: #0f172a;">
+            Como você quer entrar?
+          </h2>
+          <p style="margin: 0 0 28px; font-size: 14px; color: #64748b;">
+            Escolha seu perfil para continuar
+          </p>
+        </div>
 
-      <!-- Seleção de Perfil Inicial -->
-      <div v-if="!abaSelecionada">
         <!-- Usuário / Voluntário -->
         <button
           type="button"
-          @click="selecionar('usuario')"
+          @click="escolherPerfil('usuario')"
           style="display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: 100%; padding: 18px 20px; margin-bottom: 14px; text-align: left; background: #eff6ff; border: 2px solid #2563eb; border-radius: 14px; cursor: pointer;"
         >
           <span style="font-size: 34px; line-height: 1; flex-shrink: 0;">🙋‍♀️</span>
@@ -53,7 +52,7 @@
         <!-- Abrigo / Gestor -->
         <button
           type="button"
-          @click="abaSelecionada = 'abrigo'"
+          @click="escolherPerfil('gestor')"
           style="display: flex; align-items: center; gap: 16px; box-sizing: border-box; width: 100%; padding: 18px 20px; text-align: left; background: #ecfeff; border: 2px solid #0891b2; border-radius: 14px; cursor: pointer;"
         >
           <span style="font-size: 34px; line-height: 1; flex-shrink: 0;">🏠</span>
@@ -66,73 +65,145 @@
         </button>
       </div>
 
-      <!-- Formulário com os campos da Tabela 'instituicao' e 'localizacao' -->
-      <form
-        v-else-if="abaSelecionada === 'abrigo'"
-        @submit.prevent="salvarInstituicao"
-        style="display: flex; flex-direction: column; gap: 12px;"
-      >
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a;">Dados da Instituição</h3>
-          <button
-            type="button"
-            @click="abaSelecionada = null"
-            style="background: none; border: none; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer;"
-          >
-            ← Voltar
+      <!-- ============ PASSO 2: ENTRAR OU CADASTRAR ============ -->
+      <div v-else>
+        <button
+          type="button"
+          @click="voltar"
+          style="background: none; border: none; padding: 0; font-size: 13px; font-weight: 600; color: #2563eb; cursor: pointer;"
+        >
+          ← Voltar
+        </button>
+
+        <div style="text-align: center; margin: 4px 0 22px;">
+          <div style="font-size: 38px; line-height: 1;">{{ perfilEscolhido === 'usuario' ? '🙋‍♀️' : '🏠' }}</div>
+          <h2 style="margin: 10px 0 0; font-size: 20px; font-weight: 800; color: #0f172a;">
+            {{ perfilEscolhido === 'usuario' ? 'Usuário / Voluntário' : 'Abrigo / Gestor' }}
+          </h2>
+        </div>
+
+        <!-- Abas Entrar / Cadastrar -->
+        <div style="display: flex; gap: 4px; padding: 4px; margin-bottom: 22px; background: #f1f5f9; border-radius: 14px;">
+          <button type="button" @click="trocarModo('entrar')" :style="estiloTab(modo === 'entrar')">
+            Entrar
+          </button>
+          <button type="button" @click="trocarModo('cadastrar')" :style="estiloTab(modo === 'cadastrar')">
+            Cadastrar
           </button>
         </div>
 
-        <div>
-          <label :style="estiloLabel">Nome da Instituição</label>
-          <input v-model="formInstituicao.nome" required type="text" placeholder="Ex: Abrigo Esperança" :style="estiloInput" />
-        </div>
+        <!-- ----- ENTRAR (já tenho conta) ----- -->
+        <form v-if="modo === 'entrar'" @submit.prevent="entrar" style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="margin: 0 0 4px; font-size: 13px; color: #64748b; text-align: center;">
+            Já tem conta? Entre com seu e-mail e senha.
+          </p>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div>
-            <label :style="estiloLabel">CNPJ</label>
-            <input v-model="formInstituicao.cnpj" required type="text" placeholder="00.000.000/0001-00" :style="estiloInput" />
+            <label :style="estiloLabel">E-mail</label>
+            <input v-model="loginForm.email" required type="email" autocomplete="email" placeholder="email@exemplo.com" :style="estiloInput" />
           </div>
           <div>
-            <label :style="estiloLabel">Telefone</label>
-            <input v-model="formInstituicao.telefone" required type="text" placeholder="(11) 90000-0000" :style="estiloInput" />
+            <label :style="estiloLabel">Senha</label>
+            <input v-model="loginForm.senha" required type="password" autocomplete="current-password" placeholder="Sua senha" :style="estiloInput" />
           </div>
-        </div>
 
-        <div>
-          <label :style="estiloLabel">E-mail de Contato</label>
-          <input v-model="formInstituicao.email_contato" required type="email" placeholder="contato@abrigo.com" :style="estiloInput" />
-        </div>
+          <p v-if="erro" :style="estiloErro">{{ erro }}</p>
 
-        <div>
-          <label :style="estiloLabel">Endereço Completo</label>
-          <input v-model="formInstituicao.localizacao.endereco" required type="text" placeholder="Rua, número, bairro - Cidade/UF" :style="estiloInput" />
-        </div>
+          <button type="submit" :style="estiloBotaoPrincipal">Entrar</button>
+        </form>
 
-        <div>
-          <label :style="estiloLabel">Descrição</label>
-          <textarea v-model="formInstituicao.descricao" rows="2" placeholder="Descreva os serviços do abrigo..." :style="estiloInput"></textarea>
-        </div>
-
-        <button
-          type="submit"
-          style="width: 100%; margin-top: 6px; padding: 12px 0; background: #0891b2; color: white; font-size: 14px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;"
+        <!-- ----- CADASTRAR: USUÁRIO ----- -->
+        <form
+          v-else-if="perfilEscolhido === 'usuario'"
+          @submit.prevent="cadastrarUsuario"
+          style="display: flex; flex-direction: column; gap: 12px;"
         >
-          Cadastrar / Entrar como Gestor
-        </button>
-      </form>
+          <p style="margin: 0 0 4px; font-size: 13px; color: #64748b; text-align: center;">
+            Ainda não tem conta? Crie a sua em poucos segundos.
+          </p>
+
+          <div>
+            <label :style="estiloLabel">Nome completo</label>
+            <input v-model="cadastroUsuario.nome" required type="text" autocomplete="name" placeholder="Seu nome" :style="estiloInput" />
+          </div>
+          <div>
+            <label :style="estiloLabel">E-mail</label>
+            <input v-model="cadastroUsuario.email" required type="email" autocomplete="email" placeholder="email@exemplo.com" :style="estiloInput" />
+          </div>
+          <div>
+            <label :style="estiloLabel">Senha</label>
+            <input v-model="cadastroUsuario.senha" required type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres" :style="estiloInput" />
+          </div>
+
+          <p v-if="erro" :style="estiloErro">{{ erro }}</p>
+
+          <button type="submit" :style="estiloBotaoPrincipal">Criar conta</button>
+        </form>
+
+        <!-- ----- CADASTRAR: ABRIGO / GESTOR ----- -->
+        <form
+          v-else
+          @submit.prevent="cadastrarGestor"
+          style="display: flex; flex-direction: column; gap: 12px;"
+        >
+          <div>
+            <label :style="estiloLabel">Nome da Instituição</label>
+            <input v-model="formInstituicao.nome" required type="text" placeholder="Ex: Abrigo Esperança" :style="estiloInput" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label :style="estiloLabel">CNPJ</label>
+              <input v-model="formInstituicao.cnpj" required type="text" placeholder="00.000.000/0001-00" :style="estiloInput" />
+            </div>
+            <div>
+              <label :style="estiloLabel">Telefone</label>
+              <input v-model="formInstituicao.telefone" required type="text" placeholder="(11) 90000-0000" :style="estiloInput" />
+            </div>
+          </div>
+
+          <div>
+            <label :style="estiloLabel">E-mail de Contato (será seu login)</label>
+            <input v-model="formInstituicao.email_contato" required type="email" autocomplete="email" placeholder="contato@abrigo.com" :style="estiloInput" />
+          </div>
+
+          <div>
+            <label :style="estiloLabel">Senha</label>
+            <input v-model="senhaGestor" required type="password" autocomplete="new-password" placeholder="Mínimo de 6 caracteres" :style="estiloInput" />
+          </div>
+
+          <div>
+            <label :style="estiloLabel">Endereço Completo</label>
+            <input v-model="formInstituicao.localizacao.endereco" required type="text" placeholder="Rua, número, bairro - Cidade/UF" :style="estiloInput" />
+          </div>
+
+          <div>
+            <label :style="estiloLabel">Descrição</label>
+            <textarea v-model="formInstituicao.descricao" rows="2" placeholder="Descreva os serviços do abrigo..." :style="estiloInput"></textarea>
+          </div>
+
+          <p v-if="erro" :style="estiloErro">{{ erro }}</p>
+
+          <button type="submit" :style="estiloBotaoPrincipal">Cadastrar abrigo</button>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import { cadastrarConta, entrarNaConta } from '../auth'
 
-const emit = defineEmits(['select', 'submitInstituicao', 'close'])
-const abaSelecionada = ref(null)
+const emit = defineEmits(['select', 'submitInstituicao', 'usuarioAutenticado', 'gestorAutenticado', 'close'])
 
-const estiloLabel = 'display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #334155;'
-const estiloInput = 'box-sizing: border-box; width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; color: #1e293b; background: white; border: 1px solid #cbd5e1; border-radius: 12px; outline: none; resize: vertical;'
+const perfilEscolhido = ref(null) // null | 'usuario' | 'gestor'
+const modo = ref('entrar')        // 'entrar' | 'cadastrar'
+const erro = ref('')
+
+const loginForm = reactive({ email: '', senha: '' })
+const cadastroUsuario = reactive({ nome: '', email: '', senha: '' })
+const senhaGestor = ref('')
 
 const formInstituicao = reactive({
   nome: '',
@@ -147,11 +218,112 @@ const formInstituicao = reactive({
   }
 })
 
-function selecionar(role) {
-  emit('select', role)
+// Cor principal muda conforme o perfil (azul = usuário, ciano = gestor)
+const corPrincipal = computed(() => (perfilEscolhido.value === 'gestor' ? '#0891b2' : '#1d4ed8'))
+
+const estiloLabel = 'display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #334155;'
+const estiloInput = 'box-sizing: border-box; width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; color: #1e293b; background: white; border: 1px solid #cbd5e1; border-radius: 12px; outline: none; resize: vertical;'
+const estiloErro = 'margin: 0; padding: 10px 12px; font-size: 13px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;'
+
+const estiloBotaoPrincipal = computed(
+  () => `width: 100%; margin-top: 6px; padding: 12px 0; background: ${corPrincipal.value}; color: white; font-size: 14px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;`
+)
+
+function estiloTab(ativa) {
+  return `flex: 1; padding: 10px 0; font-size: 14px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; background: ${ativa ? corPrincipal.value : 'transparent'}; color: ${ativa ? 'white' : '#475569'};`
 }
 
-function salvarInstituicao() {
-  emit('submitInstituicao', { ...formInstituicao })
+function escolherPerfil(perfil) {
+  perfilEscolhido.value = perfil
+  modo.value = 'entrar'
+  erro.value = ''
+}
+
+function voltar() {
+  perfilEscolhido.value = null
+  erro.value = ''
+}
+
+function trocarModo(novoModo) {
+  modo.value = novoModo
+  erro.value = ''
+}
+
+// ----- Entrar (já tenho conta) -----
+function entrar() {
+  erro.value = ''
+  const resultado = entrarNaConta({
+    tipo: perfilEscolhido.value,
+    email: loginForm.email,
+    senha: loginForm.senha
+  })
+
+  if (!resultado.ok) {
+    erro.value = resultado.erro
+    return
+  }
+
+  if (perfilEscolhido.value === 'usuario') {
+    emit('usuarioAutenticado', { id: resultado.conta.id, perfil: resultado.conta.perfil, novo: false })
+  } else {
+    const instituicaoId = resultado.conta.perfil?.instituicaoId
+    if (!instituicaoId) {
+      erro.value = 'Não encontramos o abrigo ligado a esta conta.'
+      return
+    }
+    emit('gestorAutenticado', { id: resultado.conta.id, instituicaoId })
+  }
+}
+
+// ----- Cadastrar usuário -----
+function cadastrarUsuario() {
+  erro.value = ''
+  if (cadastroUsuario.senha.length < 6) {
+    erro.value = 'A senha precisa ter pelo menos 6 caracteres.'
+    return
+  }
+
+  const email = cadastroUsuario.email.trim()
+  const resultado = cadastrarConta({
+    tipo: 'usuario',
+    email,
+    senha: cadastroUsuario.senha,
+    perfil: { nome: cadastroUsuario.nome.trim(), idade: '', telefone: '', email, cpf: '' }
+  })
+
+  if (!resultado.ok) {
+    erro.value = resultado.erro
+    return
+  }
+
+  emit('usuarioAutenticado', { id: resultado.conta.id, perfil: resultado.conta.perfil, novo: true })
+}
+
+// ----- Cadastrar abrigo / gestor -----
+function cadastrarGestor() {
+  erro.value = ''
+  if (senhaGestor.value.length < 6) {
+    erro.value = 'A senha precisa ter pelo menos 6 caracteres.'
+    return
+  }
+
+  const resultado = cadastrarConta({
+    tipo: 'gestor',
+    email: formInstituicao.email_contato,
+    senha: senhaGestor.value,
+    perfil: { nome: formInstituicao.nome }
+  })
+
+  if (!resultado.ok) {
+    erro.value = resultado.erro
+    return
+  }
+
+  // A senha não vai junto com os dados do abrigo
+  emit(
+    'submitInstituicao',
+    { ...formInstituicao, localizacao: { ...formInstituicao.localizacao } },
+    resultado.conta.id
+  )
 }
 </script>
