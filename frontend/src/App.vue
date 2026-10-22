@@ -83,9 +83,20 @@
           <div style="padding: 4px;">
             <div style="font-weight: bold; color: #0f172a; font-size: 14px;">{{ item.nome }}</div>
             <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">{{ item.localizacao.endereco }}</div>
-            <div style="font-size: 12px; font-weight: 600;" :style="{ color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) }">
-              {{ item.vagas_totais - item.vagas_ocupadas }} vagas disponíveis
-            </div>
+            <!-- // TODO: Alterar depois, para testes com backend, deixando assim: -->
+            <div
+            v-if="item.vagas_totais != null && item.vagas_totais > 0 && item.vagas_ocupadas != null"
+            style="font-size: 12px; font-weight: 600;"
+            :style="{
+              color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais)
+            }"
+          >
+            {{ item.vagas_totais - item.vagas_ocupadas }} vagas disponíveis
+          </div>
+
+          <div v-else style="font-size: 12px; color: #64748b;">
+            Informações de vagas indisponíveis
+          </div>
           </div>
         </l-popup>
       </l-marker>
@@ -163,9 +174,12 @@
             <div style="font-size: 12px; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               {{ item.localizacao.endereco }}
             </div>
-
-            <!-- Barra de Vagas -->
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+            <!-- TODO: Teste com backend, alterar posteriormente para funcionar do jeito certo -->
+            <!-- Barra de Vagas: aparece somente quando há dados disponíveis -->
+            <div
+              v-if="item.vagas_totais != null && item.vagas_totais > 0 && item.vagas_ocupadas != null"
+              style="display: flex; align-items: center; gap: 8px; margin-top: 10px;"
+            >
               <div style="flex: 1; height: 6px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
                 <div
                   :style="{
@@ -176,12 +190,22 @@
                   }"
                 />
               </div>
+
               <span
                 style="font-size: 11px; font-weight: 700; flex-shrink: 0;"
-                :style="{ color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais) }"
+                :style="{
+                  color: calcularCorOcupacao(item.vagas_ocupadas / item.vagas_totais)
+                }"
               >
                 {{ item.vagas_totais - item.vagas_ocupadas }} vagas
               </span>
+            </div>
+
+            <div
+              v-else
+              style="margin-top: 10px; font-size: 11px; color: #64748b;"
+            >
+              Vagas não informadas
             </div>
           </button>
 
@@ -246,7 +270,12 @@ import RoleModal from './components/RoleModal.vue'
 import ContaUsuario from './components/ContaUsuario.vue'
 import ContaGestor from './components/ContaGestor.vue'
 import { atualizarPerfil } from './auth'
-import { INSTITUICOES_INIT, calcularCorOcupacao } from './data'
+
+// Teste de conexão entre front -> bff -> backend para solicitar lista de abrigos e construir mapa:
+import { 
+  INSTITUICOES_INIT, calcularCorOcupacao 
+} from './data'
+import { buscarInstituicoes } from './services/instituicoesApi.js'
 
 const exibirModalRole = ref(false)
 const exibirMinhaConta = ref(false)
@@ -269,8 +298,20 @@ const limitesSP = ref([
   [-23.1000, -45.7000]
 ])
 
-onMounted(() => {
-  console.warn('BFF ainda não conectado. Usando dados locais do data.js')
+onMounted(async() => {
+  try {
+    // Solicita ao serviço os abrigos disponibilizados pelo BFF:
+    const dados = await buscarInstituicoes()
+
+    // Atualiza a lista reattiva usada pelo mapa e pela busca
+    instituicoes.value = dados
+
+    console.log('Abrigos carregados do BFF:', dados)
+  } catch(erro) {
+    // Mantém os dados de teste caso a requisição falhe:
+    console.error("Erro ao carregar abrigos do BFF: ", erro)
+    instituicoes.value = [...INSTITUICOES_INIT]
+  }
 })
 
 const instituicoesFiltradas = computed(() => {

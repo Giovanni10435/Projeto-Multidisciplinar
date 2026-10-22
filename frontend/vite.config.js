@@ -4,7 +4,11 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [vue()],
   server: {
-    host: true,
-    proxy: { '/mensagens': 'http://localhost:8081' },
+    proxy: {
+       '/api': {
+        target: 'http://localhost:8081',
+        changeOrigin: true
+      } 
+    },
   },
 })
