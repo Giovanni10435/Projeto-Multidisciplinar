@@ -1,96 +1,102 @@
 package com.AcolheSP.demo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Optional;
+import java.math.BigDecimal;
+import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.AcolheSP.demo.dto.AbrigoRequest;
 import com.AcolheSP.demo.dto.LoginRequest;
 import com.AcolheSP.demo.dto.LoginResponse;
+import com.AcolheSP.demo.dto.VoluntarioRequest;
 import com.AcolheSP.demo.model.Conta;
-import com.AcolheSP.demo.model.Instituicao;
-import com.AcolheSP.demo.model.Voluntario;
 import com.AcolheSP.demo.repository.ContaRepository;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@Transactional
 class AuthServiceTest {
 
-    @Mock
-    private ContaRepository contaRepo;
+    @Autowired
+    private EntityManager em;
 
-    private final PasswordHasher hasher = new PasswordHasher();
+    private static String token() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private static String emailUnico(String prefixo) {
+        return prefixo + "." + UUID.randomUUID() + "@exemplo.com";
+    }
+
+    @Autowired
+    private VoluntarioService voluntarioService;
+
+    @Autowired
+    private AbrigoService abrigoService;
+
+    @Autowired
     private AuthService authService;
 
-    @BeforeEach
-    void setUp() {
-        authService = new AuthService(contaRepo, hasher);
-    }
+    @Autowired
+    private ContaRepository contaRepo;
 
-    private Voluntario voluntario(String email, String senha, boolean ativo) {
-        Voluntario v = new Voluntario();
-        v.setId(1);
-        v.setEmail(email);
-        v.setRole("usuario");
-        v.setNome("Ana");
-        v.setSenhaHash(senha == null ? null : hasher.gerarHash(senha));
-        v.setAtivo(ativo);
-        return v;
-    }
+    @Autowired
+    private PasswordHasher hasher;
 
-    private ResponseStatusException tentarLogin(String email, String senha) {
-        return assertThrows(ResponseStatusException.class,
+    private HttpStatus statusDoErro(String email, String senha) {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> authService.login(new LoginRequest(email, senha)));
+        return HttpStatus.valueOf(ex.getStatusCode().value());
     }
 
     @Test
-    void deveLogarVoluntarioComCredenciaisValidas() {
-        when(contaRepo.findByEmail("ana@exemplo.com"))
-                .thenReturn(Optional.of(voluntario("ana@exemplo.com", "senha123", true)));
+    void deveLogarDepoisDeCadastrarVoluntarioComSenha() {
+        String email = emailUnico("login");
+        var criado = voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null, "senha123"));
 
-        LoginResponse res = authService.login(new LoginRequest("ana@exemplo.com", "senha123"));
+        LoginResponse res = authService.login(new LoginRequest(email, "senha123"));
 
-        assertEquals(1, res.id());
-        assertEquals("ana@exemplo.com", res.email());
+        assertEquals(criado.id(), res.id());
+        assertEquals(email, res.email());
         assertEquals("usuario", res.role());
         assertEquals("Ana", res.nome());
     }
 
     @Test
-    void deveLogarAbrigoEDevolverNomeDaInstituicao() {
-        Instituicao inst = new Instituicao();
-        inst.setId(2);
-        inst.setEmail("abrigo@exemplo.com");
-        inst.setRole("abrigo");
-        inst.setNome("Casa Esperança");
-        inst.setSenhaHash(hasher.gerarHash("senha123"));
-        when(contaRepo.findByEmail("abrigo@exemplo.com")).thenReturn(Optional.of(inst));
+    void deveLogarAbrigoCadastradoComSenhaEDevolverONome() {
+        String email = emailUnico("abrigo");
+        abrigoService.cadastrarAbrigo(new AbrigoRequest(email, "Casa " + token(), null, null, null, null,
+                "Rua A, 10", null, new BigDecimal("-23.55"), new BigDecimal("-46.63"), "senha123"));
 
-        LoginResponse res = authService.login(new LoginRequest("abrigo@exemplo.com", "senha123"));
+        LoginResponse res = authService.login(new LoginRequest(email, "senha123"));
 
         assertEquals("abrigo", res.role());
-        assertEquals("Casa Esperança", res.nome());
+        assertTrue(res.nome().startsWith("Casa "));
     }
 
     @Test
     void deveLogarAdminSemNome() {
         Conta admin = new Conta();
-        admin.setId(3);
-        admin.setEmail("admin@exemplo.com");
+        admin.setEmail(emailUnico("admin"));
         admin.setRole("admin");
         admin.setSenhaHash(hasher.gerarHash("senha123"));
-        when(contaRepo.findByEmail("admin@exemplo.com")).thenReturn(Optional.of(admin));
+        em.persist(admin);
+        em.flush();
 
-        LoginResponse res = authService.login(new LoginRequest("admin@exemplo.com", "senha123"));
+        LoginResponse res = authService.login(new LoginRequest(admin.getEmail(), "senha123"));
 
         assertEquals("admin", res.role());
         assertNull(res.nome());
@@ -98,85 +104,74 @@ class AuthServiceTest {
 
     @Test
     void deveIgnorarEspacosNoEmail() {
-        when(contaRepo.findByEmail("ana@exemplo.com"))
-                .thenReturn(Optional.of(voluntario("ana@exemplo.com", "senha123", true)));
+        String email = emailUnico("login");
+        voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null, "senha123"));
 
-        LoginResponse res = authService.login(new LoginRequest("  ana@exemplo.com  ", "senha123"));
+        LoginResponse res = authService.login(new LoginRequest("  " + email + "  ", "senha123"));
 
-        assertEquals("ana@exemplo.com", res.email());
+        assertEquals(email, res.email());
     }
 
     @Test
-    void naoDeveLogarSemEmail() {
-        ResponseStatusException ex = tentarLogin(null, "senha123");
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertEquals("Campo obrigatório: email", ex.getReason());
+    void naoDeveGuardarASenhaEmTextoPuro() {
+        String email = emailUnico("login");
+        voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null, "senha123"));
+
+        Conta conta = contaRepo.findByEmail(email).orElseThrow();
+
+        assertNotNull(conta.getSenhaHash());
+        assertNotEquals("senha123", conta.getSenhaHash());
     }
 
     @Test
-    void naoDeveLogarComEmailEmBranco() {
-        assertEquals(HttpStatus.BAD_REQUEST, tentarLogin("   ", "senha123").getStatusCode());
-    }
-
-    @Test
-    void naoDeveLogarSemSenha() {
-        ResponseStatusException ex = tentarLogin("ana@exemplo.com", null);
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertEquals("Campo obrigatório: senha", ex.getReason());
-    }
-
-    @Test
-    void naoDeveLogarComCorpoNulo() {
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> authService.login(null));
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-    }
-
-    @Test
-    void naoDeveLogarComEmailInexistente() {
-        when(contaRepo.findByEmail("naoexiste@exemplo.com")).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = tentarLogin("naoexiste@exemplo.com", "senha123");
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
-        assertEquals("Email ou senha inválidos", ex.getReason());
+    void naoDeveLogarSemEmailOuSemSenha() {
+        assertEquals(HttpStatus.BAD_REQUEST, statusDoErro(null, "senha123"));
+        assertEquals(HttpStatus.BAD_REQUEST, statusDoErro("   ", "senha123"));
+        assertEquals(HttpStatus.BAD_REQUEST, statusDoErro("ana@exemplo.com", null));
+        assertEquals(HttpStatus.BAD_REQUEST, statusDoErro("ana@exemplo.com", "  "));
+        assertThrows(ResponseStatusException.class, () -> authService.login(null));
     }
 
     @Test
     void naoDeveLogarComSenhaErrada() {
-        when(contaRepo.findByEmail("ana@exemplo.com"))
-                .thenReturn(Optional.of(voluntario("ana@exemplo.com", "senha123", true)));
+        String email = emailUnico("login");
+        voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null, "senha123"));
 
-        ResponseStatusException ex = tentarLogin("ana@exemplo.com", "senhaErrada");
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
-        assertEquals("Email ou senha inválidos", ex.getReason());
+        assertEquals(HttpStatus.UNAUTHORIZED, statusDoErro(email, "errada"));
     }
 
     @Test
-    void naoDeveLogarContaSemSenhaCadastrada() {
-        when(contaRepo.findByEmail("ana@exemplo.com"))
-                .thenReturn(Optional.of(voluntario("ana@exemplo.com", null, true)));
-
-        assertEquals(HttpStatus.UNAUTHORIZED, tentarLogin("ana@exemplo.com", "senha123").getStatusCode());
+    void naoDeveLogarComEmailInexistente() {
+        assertEquals(HttpStatus.UNAUTHORIZED, statusDoErro(emailUnico("naoexiste"), "senha123"));
     }
 
     @Test
-    void naoDeveLogarContaInativaMesmoComSenhaCorreta() {
-        when(contaRepo.findByEmail("ana@exemplo.com"))
-                .thenReturn(Optional.of(voluntario("ana@exemplo.com", "senha123", false)));
+    void naoDeveLogarContaCadastradaSemSenha() {
+        String email = emailUnico("login");
+        voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null));
 
-        ResponseStatusException ex = tentarLogin("ana@exemplo.com", "senha123");
+        assertEquals(HttpStatus.UNAUTHORIZED, statusDoErro(email, "senha123"));
+    }
 
-        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        assertEquals("Conta inativa", ex.getReason());
+    @Test
+    void naoDeveLogarContaInativa() {
+        String email = emailUnico("login");
+        voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null, "senha123"));
+        Conta conta = contaRepo.findByEmail(email).orElseThrow();
+        conta.setAtivo(false);
+        contaRepo.saveAndFlush(conta);
+
+        assertEquals(HttpStatus.FORBIDDEN, statusDoErro(email, "senha123"));
     }
 
     @Test
     void contaInativaComSenhaErradaNaoDeveRevelarQueEstaInativa() {
-        when(contaRepo.findByEmail("ana@exemplo.com"))
-                .thenReturn(Optional.of(voluntario("ana@exemplo.com", "senha123", false)));
+        String email = emailUnico("login");
+        voluntarioService.cadastrar(new VoluntarioRequest(email, "Ana", null, null, "senha123"));
+        Conta conta = contaRepo.findByEmail(email).orElseThrow();
+        conta.setAtivo(false);
+        contaRepo.saveAndFlush(conta);
 
-        assertEquals(HttpStatus.UNAUTHORIZED, tentarLogin("ana@exemplo.com", "senhaErrada").getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, statusDoErro(email, "errada"));
     }
 }

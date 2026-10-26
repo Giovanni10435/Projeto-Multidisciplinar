@@ -2,222 +2,236 @@ package com.AcolheSP.demo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.AcolheSP.demo.dto.SolicitacaoRequest;
 import com.AcolheSP.demo.dto.SolicitacaoResponse;
 import com.AcolheSP.demo.model.Doacao;
+import com.AcolheSP.demo.model.Instituicao;
 import com.AcolheSP.demo.model.Necessidade;
 import com.AcolheSP.demo.model.StatusDoacao;
 import com.AcolheSP.demo.model.StatusNecessidade;
 import com.AcolheSP.demo.model.StatusVoluntariado;
 import com.AcolheSP.demo.model.Voluntariado;
 import com.AcolheSP.demo.model.Voluntario;
-import com.AcolheSP.demo.repository.DoacaoRepository;
-import com.AcolheSP.demo.repository.InstituicaoRepository;
-import com.AcolheSP.demo.repository.VoluntariadoRepository;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@Transactional
 class SolicitacaoServiceTest {
 
-    private static final Integer INST_ID = 1;
+    @Autowired
+    private EntityManager em;
 
-    @Mock
-    private DoacaoRepository doacaoRepo;
-
-    @Mock
-    private VoluntariadoRepository voluntariadoRepo;
-
-    @Mock
-    private InstituicaoRepository instituicaoRepo;
-
-    private SolicitacaoService service;
-    private Voluntario voluntario;
-
-    @BeforeEach
-    void setUp() {
-        service = new SolicitacaoService(doacaoRepo, voluntariadoRepo, instituicaoRepo);
-        voluntario = new Voluntario();
-        voluntario.setId(5);
-        voluntario.setNome("Ana");
+    private static String token() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    // ---------- helpers ----------
-
-    private void instituicaoExiste() {
-        when(instituicaoRepo.existsById(INST_ID)).thenReturn(true);
+    private static String emailUnico(String prefixo) {
+        return prefixo + "." + UUID.randomUUID() + "@exemplo.com";
     }
 
-    private Necessidade necessidade(int solicitada, int recebida) {
-        Necessidade n = new Necessidade();
-        n.setId(7);
-        n.setDescricao("Cobertores");
-        n.setQuantidadeSolicitada(solicitada);
-        n.setQuantidadeRecebida(recebida);
-        n.setStatus(StatusNecessidade.ABERTA);
-        return n;
-    }
-
-    private Doacao doacao(int id, StatusDoacao status, int quantidade, Necessidade n, LocalDate data) {
-        Doacao d = new Doacao();
-        d.setId(id);
-        d.setStatus(status);
-        d.setQuantidade(quantidade);
-        d.setNecessidade(n);
-        d.setVoluntario(voluntario);
-        d.setData(data);
-        return d;
-    }
-
-    private Voluntariado voluntariado(int id, StatusVoluntariado status, LocalDate data) {
-        Voluntariado v = new Voluntariado();
-        v.setId(id);
-        v.setStatus(status);
-        v.setVoluntario(voluntario);
-        v.setDataSolicitacao(data);
+    private Voluntario criarVoluntario() {
+        Voluntario v = new Voluntario();
+        v.setEmail(emailUnico("voluntario"));
+        v.setRole("usuario");
+        v.setNome("Ana Teste");
+        v.setTelefone("(11) 11111-1111");
+        v.setDisponibilidade("Sábados");
+        em.persist(v);
+        em.flush();
         return v;
     }
 
-    private void doacaoExiste(Doacao d) {
-        when(doacaoRepo.findByIdAndNecessidadeInstituicaoId(d.getId(), INST_ID)).thenReturn(Optional.of(d));
+    // Abrigo sem localização (para testes que não precisam de mapa)
+    private Instituicao criarInstituicao(String nome) {
+        Instituicao i = new Instituicao();
+        i.setEmail(emailUnico("abrigo"));
+        i.setRole("abrigo");
+        i.setNome(nome);
+        em.persist(i);
+        em.flush();
+        return i;
     }
 
-    private void voluntariadoExiste(Voluntariado v) {
-        when(voluntariadoRepo.findByIdAndInstituicaoId(v.getId(), INST_ID)).thenReturn(Optional.of(v));
+    private Necessidade criarNecessidade(Instituicao inst, String descricao, int solicitada, int recebida,
+            StatusNecessidade status) {
+        Necessidade n = new Necessidade();
+        n.setInstituicao(inst);
+        n.setDescricao(descricao);
+        n.setQuantidadeSolicitada(solicitada);
+        n.setQuantidadeRecebida(recebida);
+        n.setStatus(status);
+        em.persist(n);
+        em.flush();
+        return n;
+    }
+
+    private Doacao criarDoacao(Voluntario v, Necessidade n, int quantidade, StatusDoacao status, LocalDate data) {
+        Doacao d = new Doacao();
+        d.setVoluntario(v);
+        d.setNecessidade(n);
+        d.setQuantidade(quantidade);
+        d.setStatus(status);
+        d.setData(data);
+        em.persist(d);
+        em.flush();
+        return d;
+    }
+
+    // dataSolicitacao null = a entidade preenche com a data de hoje
+    private Voluntariado criarVoluntariado(Voluntario v, Instituicao inst, StatusVoluntariado status,
+            LocalDate dataSolicitacao) {
+        Voluntariado vt = new Voluntariado();
+        vt.setVoluntario(v);
+        vt.setInstituicao(inst);
+        vt.setStatus(status);
+        vt.setDataSolicitacao(dataSolicitacao);
+        em.persist(vt);
+        em.flush();
+        return vt;
+    }
+
+    private void sincronizar() {
+        em.flush();
+        em.clear();
+    }
+
+    @Autowired
+    private SolicitacaoService service;
+
+    private Voluntario voluntario;
+    private Instituicao inst;
+
+    @BeforeEach
+    void criarDados() {
+        voluntario = criarVoluntario();
+        inst = criarInstituicao("Casa " + token());
+    }
+
+    private SolicitacaoResponse atualizar(Integer id, String tipo, String status) {
+        return service.atualizar(inst.getId(), id, new SolicitacaoRequest(tipo, status));
     }
 
     private ResponseStatusException erro(Integer id, String tipo, String status) {
-        return assertThrows(ResponseStatusException.class,
-                () -> service.atualizar(INST_ID, id, new SolicitacaoRequest(tipo, status)));
+        return assertThrows(ResponseStatusException.class, () -> atualizar(id, tipo, status));
+    }
+
+    private Doacao doacao(StatusDoacao status, int quantidade, Necessidade n) {
+        return criarDoacao(voluntario, n, quantidade, status, LocalDate.now());
     }
 
     // ---------- listar ----------
 
     @Test
     void naoDeveListarSolicitacoesDeAbrigoInexistente() {
-        when(instituicaoRepo.existsById(INST_ID)).thenReturn(false);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.listar(INST_ID));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.listar(Integer.MAX_VALUE));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
-    void deveListarDoacoesEVoluntariadosDoMaisRecentePraMaisAntigo() {
-        instituicaoExiste();
-        Necessidade n = necessidade(10, 0);
-        when(doacaoRepo.findByNecessidadeInstituicaoId(INST_ID)).thenReturn(List.of(
-                doacao(1, StatusDoacao.PENDENTE, 2, n, LocalDate.of(2026, 10, 1)),
-                doacao(3, StatusDoacao.PENDENTE, 2, n, LocalDate.of(2026, 10, 5))));
-        when(voluntariadoRepo.findByInstituicaoId(INST_ID)).thenReturn(List.of(
-                voluntariado(2, StatusVoluntariado.PENDENTE, LocalDate.of(2026, 10, 5))));
-
-        List<SolicitacaoResponse> res = service.listar(INST_ID);
-
-        // mesma data: desempata pelo id maior primeiro
-        assertEquals(List.of(3, 2, 1), res.stream().map(SolicitacaoResponse::id).toList());
-        assertEquals("DOACAO", res.get(0).tipo());
-        assertEquals("VOLUNTARIADO", res.get(1).tipo());
+    void deveListarVazioQuandoNaoHaSolicitacoes() {
+        assertTrue(service.listar(inst.getId()).isEmpty());
     }
 
     @Test
-    void deveListarVazioQuandoNaoHaSolicitacoes() {
-        instituicaoExiste();
-        when(doacaoRepo.findByNecessidadeInstituicaoId(INST_ID)).thenReturn(List.of());
-        when(voluntariadoRepo.findByInstituicaoId(INST_ID)).thenReturn(List.of());
+    void deveListarDoacoesEVoluntariadosDoMaisRecentePraMaisAntigo() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 0, StatusNecessidade.ABERTA);
+        Doacao antiga = criarDoacao(voluntario, n, 2, StatusDoacao.PENDENTE, LocalDate.of(2026, 10, 1));
+        Doacao nova = criarDoacao(voluntario, n, 2, StatusDoacao.PENDENTE, LocalDate.of(2026, 10, 5));
+        Voluntariado vol = criarVoluntariado(voluntario, inst, StatusVoluntariado.PENDENTE, LocalDate.of(2026, 10, 5));
+        sincronizar();
 
-        assertEquals(0, service.listar(INST_ID).size());
+        List<SolicitacaoResponse> res = service.listar(inst.getId());
+
+        // mesma data: desempata pelo id maior primeiro
+        List<Integer> doDia5 = Stream.of(nova.getId(), vol.getId()).sorted(Comparator.reverseOrder()).toList();
+        assertEquals(List.of(doDia5.get(0), doDia5.get(1), antiga.getId()),
+                res.stream().map(SolicitacaoResponse::id).toList());
+    }
+
+    @Test
+    void naoDeveMostrarSolicitacoesDeOutroAbrigo() {
+        Instituicao outro = criarInstituicao("Casa " + token());
+        Necessidade doOutro = criarNecessidade(outro, "Cobertores", 10, 0, StatusNecessidade.ABERTA);
+        doacao(StatusDoacao.PENDENTE, 2, doOutro);
+        criarVoluntariado(voluntario, outro, StatusVoluntariado.PENDENTE, null);
+        sincronizar();
+
+        assertTrue(service.listar(inst.getId()).isEmpty());
     }
 
     // ---------- atualizar: validações ----------
 
     @Test
     void naoDeveAtualizarEmAbrigoInexistente() {
-        when(instituicaoRepo.existsById(INST_ID)).thenReturn(false);
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.atualizar(Integer.MAX_VALUE, 1, new SolicitacaoRequest("DOACAO", "APROVADA")));
 
-        assertEquals(HttpStatus.NOT_FOUND, erro(1, "DOACAO", "APROVADA").getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
-    void naoDeveAtualizarSemTipo() {
-        instituicaoExiste();
+    void naoDeveAtualizarSemTipoOuSemStatusOuComTipoInvalido() {
+        ResponseStatusException semTipo = erro(1, null, "APROVADA");
+        ResponseStatusException semStatus = erro(1, "DOACAO", "  ");
+        ResponseStatusException tipoInvalido = erro(1, "OUTRO", "APROVADA");
 
-        ResponseStatusException ex = erro(1, null, "APROVADA");
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertEquals("Campo obrigatório: tipo (DOACAO ou VOLUNTARIADO)", ex.getReason());
-    }
-
-    @Test
-    void naoDeveAtualizarSemStatus() {
-        instituicaoExiste();
-
-        ResponseStatusException ex = erro(1, "DOACAO", "  ");
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertEquals("Campo obrigatório: status", ex.getReason());
-    }
-
-    @Test
-    void naoDeveAtualizarComTipoInvalido() {
-        instituicaoExiste();
-
-        ResponseStatusException ex = erro(1, "OUTRO", "APROVADA");
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        assertEquals("tipo inválido (use DOACAO ou VOLUNTARIADO)", ex.getReason());
+        assertEquals("Campo obrigatório: tipo (DOACAO ou VOLUNTARIADO)", semTipo.getReason());
+        assertEquals("Campo obrigatório: status", semStatus.getReason());
+        assertEquals("tipo inválido (use DOACAO ou VOLUNTARIADO)", tipoInvalido.getReason());
+        assertEquals(HttpStatus.BAD_REQUEST, semTipo.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, semStatus.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, tipoInvalido.getStatusCode());
     }
 
     // ---------- atualizar: doação ----------
 
     @Test
-    void deveAprovarDoacaoComoConfirmada() {
-        instituicaoExiste();
-        Doacao d = doacao(1, StatusDoacao.PENDENTE, 5, necessidade(10, 0), LocalDate.now());
-        doacaoExiste(d);
-        when(doacaoRepo.save(d)).thenReturn(d);
+    void deveAprovarDoacaoComoConfirmadaENoBanco() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 0, StatusNecessidade.ABERTA);
+        Doacao d = doacao(StatusDoacao.PENDENTE, 5, n);
 
-        SolicitacaoResponse res = service.atualizar(INST_ID, 1, new SolicitacaoRequest("DOACAO", "APROVADA"));
+        SolicitacaoResponse res = atualizar(d.getId(), "DOACAO", "APROVADA");
 
         assertEquals("CONFIRMADA", res.status());
+        sincronizar();
+        assertEquals(StatusDoacao.CONFIRMADA, em.find(Doacao.class, d.getId()).getStatus());
     }
 
     @Test
-    void deveNormalizarTipoComAcentoEEspacos() {
-        instituicaoExiste();
-        Doacao d = doacao(1, StatusDoacao.PENDENTE, 5, necessidade(10, 0), LocalDate.now());
-        doacaoExiste(d);
-        when(doacaoRepo.save(d)).thenReturn(d);
+    void deveNormalizarTipoComAcentoEEspacosERecusarComoCancelada() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 0, StatusNecessidade.ABERTA);
+        Doacao d = doacao(StatusDoacao.PENDENTE, 5, n);
 
-        SolicitacaoResponse res = service.atualizar(INST_ID, 1, new SolicitacaoRequest(" Doação ", "recusada"));
+        SolicitacaoResponse res = atualizar(d.getId(), " Doação ", "recusada");
 
         assertEquals("CANCELADA", res.status());
     }
 
     @Test
     void deveEntregarDoacaoSomarNaNecessidadeEFecharQuandoBaterAMeta() {
-        instituicaoExiste();
-        Necessidade n = necessidade(10, 6);
-        Doacao d = doacao(1, StatusDoacao.CONFIRMADA, 4, n, LocalDate.now());
-        doacaoExiste(d);
-        when(doacaoRepo.save(d)).thenReturn(d);
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 6, StatusNecessidade.ABERTA);
+        Doacao d = doacao(StatusDoacao.CONFIRMADA, 4, n);
 
-        SolicitacaoResponse res = service.atualizar(INST_ID, 1, new SolicitacaoRequest("DOACAO", "ENTREGUE"));
+        SolicitacaoResponse res = atualizar(d.getId(), "DOACAO", "ENTREGUE");
 
         assertEquals("ENTREGUE", res.status());
         assertEquals(10, n.getQuantidadeRecebida());
@@ -226,118 +240,109 @@ class SolicitacaoServiceTest {
 
     @Test
     void deveEntregarDoacaoSemFecharNecessidadeQuandoNaoBateAMeta() {
-        instituicaoExiste();
-        Necessidade n = necessidade(10, 6);
-        Doacao d = doacao(1, StatusDoacao.CONFIRMADA, 2, n, LocalDate.now());
-        doacaoExiste(d);
-        when(doacaoRepo.save(d)).thenReturn(d);
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 6, StatusNecessidade.ABERTA);
+        Doacao d = doacao(StatusDoacao.CONFIRMADA, 2, n);
 
-        service.atualizar(INST_ID, 1, new SolicitacaoRequest("DOACAO", "ENTREGUE"));
+        atualizar(d.getId(), "DOACAO", "ENTREGUE");
 
         assertEquals(8, n.getQuantidadeRecebida());
         assertEquals(StatusNecessidade.ABERTA, n.getStatus());
     }
 
     @Test
-    void naoDeveAlterarDoacaoJaEntregueOuCancelada() {
-        instituicaoExiste();
-        Doacao d = doacao(1, StatusDoacao.ENTREGUE, 4, necessidade(10, 10), LocalDate.now());
-        doacaoExiste(d);
+    void naoDeveAlterarDoacaoJaEntregue() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 10, StatusNecessidade.ATENDIDA);
+        Doacao d = doacao(StatusDoacao.ENTREGUE, 4, n);
 
-        ResponseStatusException ex = erro(1, "DOACAO", "APROVADA");
+        ResponseStatusException ex = erro(d.getId(), "DOACAO", "APROVADA");
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-        verify(doacaoRepo, never()).save(any());
     }
 
     @Test
     void naoDeveAtualizarDoacaoComStatusInvalido() {
-        instituicaoExiste();
-        doacaoExiste(doacao(1, StatusDoacao.PENDENTE, 4, necessidade(10, 0), LocalDate.now()));
+        Necessidade n = criarNecessidade(inst, "Cobertores", 10, 0, StatusNecessidade.ABERTA);
+        Doacao d = doacao(StatusDoacao.PENDENTE, 4, n);
 
-        ResponseStatusException ex = erro(1, "DOACAO", "EM_ANDAMENTO");
+        ResponseStatusException ex = erro(d.getId(), "DOACAO", "EM_ANDAMENTO");
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
     void naoDeveAtualizarDoacaoInexistenteNoAbrigo() {
-        instituicaoExiste();
-        when(doacaoRepo.findByIdAndNecessidadeInstituicaoId(99, INST_ID)).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = erro(99, "DOACAO", "APROVADA");
+        ResponseStatusException ex = erro(Integer.MAX_VALUE, "DOACAO", "APROVADA");
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
         assertEquals("Doação não encontrada nesse abrigo", ex.getReason());
     }
 
+    @Test
+    void naoDeveAtualizarDoacaoDeOutroAbrigo() {
+        Instituicao outro = criarInstituicao("Casa " + token());
+        Necessidade doOutro = criarNecessidade(outro, "Cobertores", 10, 0, StatusNecessidade.ABERTA);
+        Doacao d = doacao(StatusDoacao.PENDENTE, 4, doOutro);
+
+        ResponseStatusException ex = erro(d.getId(), "DOACAO", "APROVADA");
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
     // ---------- atualizar: voluntariado ----------
 
-    private SolicitacaoResponse atualizarVoluntariado(Voluntariado v, String status) {
-        voluntariadoExiste(v);
-        when(voluntariadoRepo.save(v)).thenReturn(v);
-        return service.atualizar(INST_ID, v.getId(), new SolicitacaoRequest("VOLUNTARIADO", status));
+    private Voluntariado voluntariadoCom(StatusVoluntariado status) {
+        return criarVoluntariado(voluntario, inst, status, null);
     }
 
     @Test
     void deveAprovarVoluntariado() {
-        instituicaoExiste();
-        Voluntariado v = voluntariado(2, StatusVoluntariado.PENDENTE, LocalDate.now());
+        Voluntariado v = voluntariadoCom(StatusVoluntariado.PENDENTE);
 
-        assertEquals("APROVADO", atualizarVoluntariado(v, "aprovada").status());
+        assertEquals("APROVADO", atualizar(v.getId(), "VOLUNTARIADO", "aprovada").status());
     }
 
     @Test
     void deveRecusarVoluntariado() {
-        instituicaoExiste();
-        Voluntariado v = voluntariado(2, StatusVoluntariado.PENDENTE, LocalDate.now());
+        Voluntariado v = voluntariadoCom(StatusVoluntariado.PENDENTE);
 
-        assertEquals("RECUSADO", atualizarVoluntariado(v, "RECUSADO").status());
+        assertEquals("RECUSADO", atualizar(v.getId(), "VOLUNTARIADO", "RECUSADO").status());
     }
 
     @Test
     void deveColocarVoluntariadoEmAndamentoAceitandoEspacos() {
-        instituicaoExiste();
-        Voluntariado v = voluntariado(2, StatusVoluntariado.APROVADO, LocalDate.now());
+        Voluntariado v = voluntariadoCom(StatusVoluntariado.APROVADO);
 
-        assertEquals("EM_ANDAMENTO", atualizarVoluntariado(v, "em andamento").status());
+        assertEquals("EM_ANDAMENTO", atualizar(v.getId(), "VOLUNTARIADO", "em andamento").status());
     }
 
     @Test
     void deveFinalizarVoluntariadoComSinonimos() {
-        instituicaoExiste();
-        Voluntariado v = voluntariado(2, StatusVoluntariado.EM_ANDAMENTO, LocalDate.now());
+        Voluntariado v = voluntariadoCom(StatusVoluntariado.EM_ANDAMENTO);
 
-        assertEquals("FINALIZADO", atualizarVoluntariado(v, "concluída").status());
+        assertEquals("FINALIZADO", atualizar(v.getId(), "VOLUNTARIADO", "concluída").status());
     }
 
     @Test
     void naoDeveAlterarVoluntariadoEmStatusFinal() {
-        instituicaoExiste();
-        voluntariadoExiste(voluntariado(2, StatusVoluntariado.RECUSADO, LocalDate.now()));
+        Voluntariado v = voluntariadoCom(StatusVoluntariado.RECUSADO);
 
-        ResponseStatusException ex = erro(2, "VOLUNTARIADO", "APROVADO");
+        ResponseStatusException ex = erro(v.getId(), "VOLUNTARIADO", "APROVADO");
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-        verify(voluntariadoRepo, never()).save(any());
     }
 
     @Test
     void naoDeveAtualizarVoluntariadoComStatusInvalido() {
-        instituicaoExiste();
-        voluntariadoExiste(voluntariado(2, StatusVoluntariado.PENDENTE, LocalDate.now()));
+        Voluntariado v = voluntariadoCom(StatusVoluntariado.PENDENTE);
 
-        ResponseStatusException ex = erro(2, "VOLUNTARIADO", "ENTREGUE");
+        ResponseStatusException ex = erro(v.getId(), "VOLUNTARIADO", "ENTREGUE");
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
     void naoDeveAtualizarVoluntariadoInexistenteNoAbrigo() {
-        instituicaoExiste();
-        when(voluntariadoRepo.findByIdAndInstituicaoId(99, INST_ID)).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = erro(99, "VOLUNTARIADO", "APROVADO");
+        ResponseStatusException ex = erro(Integer.MAX_VALUE, "VOLUNTARIADO", "APROVADO");
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
         assertEquals("Voluntariado não encontrado nesse abrigo", ex.getReason());

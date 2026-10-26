@@ -1,232 +1,262 @@
 package com.AcolheSP.demo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.AcolheSP.demo.dto.AbrigoRequest;
 import com.AcolheSP.demo.dto.AbrigoResponse;
+import com.AcolheSP.demo.model.Conta;
 import com.AcolheSP.demo.model.Instituicao;
-import com.AcolheSP.demo.model.Localizacao;
+import com.AcolheSP.demo.model.Necessidade;
 import com.AcolheSP.demo.model.StatusNecessidade;
 import com.AcolheSP.demo.repository.ContaRepository;
-import com.AcolheSP.demo.repository.InstituicaoRepository;
-import com.AcolheSP.demo.repository.NecessidadeRepository;
 
-@ExtendWith(MockitoExtension.class)
+/**
+ * Complementa o AbrigoServiceTest: senha, e-mail de contato como login,
+ * listagem com filtros e atualização de campos, tudo no banco.
+ */
+@SpringBootTest
+@Transactional
 class AbrigoServiceUnitTest {
 
-    @Mock
-    private InstituicaoRepository instituicaoRepo;
+    @Autowired
+    private EntityManager em;
 
-    @Mock
-    private ContaRepository contaRepo;
-
-    @Mock
-    private NecessidadeRepository necessidadeRepo;
-
-    private final PasswordHasher hasher = new PasswordHasher();
-    private AbrigoService service;
-
-    @BeforeEach
-    void setUp() {
-        service = new AbrigoService(instituicaoRepo, contaRepo, necessidadeRepo, hasher);
+    private static String token() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private AbrigoRequest cadastro(String email, String emailContato, String senha) {
-        return new AbrigoRequest(email, "Casa Esperança", null, "Acolhimento", "(11) 3333-4444",
-                emailContato, "Rua A, 10", "01234-567",
-                BigDecimal.valueOf(-23.55), BigDecimal.valueOf(-46.63), senha);
+    private static String emailUnico(String prefixo) {
+        return prefixo + "." + UUID.randomUUID() + "@exemplo.com";
     }
 
-    private AbrigoRequest atualizacao(String nome, String cnpj) {
-        return new AbrigoRequest(null, nome, cnpj, null, null, null, null, null, null, null);
-    }
-
-    private Instituicao abrigoExistente() {
+    // Abrigo sem localização (para testes que não precisam de mapa)
+    private Instituicao criarInstituicao(String nome) {
         Instituicao i = new Instituicao();
-        i.setId(1);
-        i.setNome("Antigo");
-        i.setCnpj("11.111.111/0001-11");
-        Localizacao loc = new Localizacao();
-        loc.setEndereco("Rua Velha");
-        loc.setCep("00000-000");
-        loc.setLatitude(BigDecimal.valueOf(-23.0));
-        loc.setLongitude(BigDecimal.valueOf(-46.0));
-        i.setLocalizacao(loc);
+        i.setEmail(emailUnico("abrigo"));
+        i.setRole("abrigo");
+        i.setNome(nome);
+        em.persist(i);
+        em.flush();
         return i;
     }
 
-    private void salvarDevolvendoComId() {
-        when(instituicaoRepo.save(any(Instituicao.class))).thenAnswer(inv -> {
-            Instituicao i = inv.getArgument(0);
-            i.setId(1);
-            return i;
-        });
+    private Necessidade criarNecessidade(Instituicao inst, String descricao, int solicitada, int recebida,
+            StatusNecessidade status) {
+        Necessidade n = new Necessidade();
+        n.setInstituicao(inst);
+        n.setDescricao(descricao);
+        n.setQuantidadeSolicitada(solicitada);
+        n.setQuantidadeRecebida(recebida);
+        n.setStatus(status);
+        em.persist(n);
+        em.flush();
+        return n;
+    }
+
+    private void sincronizar() {
+        em.flush();
+        em.clear();
+    }
+
+    @Autowired
+    private AbrigoService service;
+
+    @Autowired
+    private ContaRepository contaRepo;
+
+    @Autowired
+    private PasswordHasher hasher;
+
+    private static String cnpjAleatorio() {
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        return String.format("%02d.%03d.%03d/0001-%02d", r.nextInt(100), r.nextInt(1000), r.nextInt(1000), r.nextInt(100));
+    }
+
+    private AbrigoRequest cadastro(String email, String nome, String emailContato, String senha) {
+        return new AbrigoRequest(email, nome, null, "Acolhimento", "(11) 3333-4444", emailContato,
+                "Rua A, 10", "01234-567", new BigDecimal("-23.55"), new BigDecimal("-46.63"), senha);
+    }
+
+    private AbrigoResponse criar(String nome) {
+        return service.cadastrarAbrigo(cadastro(emailUnico("abrigo"), nome, null, null));
     }
 
     // ---------- cadastrar ----------
 
     @Test
     void deveCadastrarAbrigoComSenhaERoleAbrigo() {
-        when(contaRepo.existsByEmail("abrigo@exemplo.com")).thenReturn(false);
-        salvarDevolvendoComId();
+        String email = emailUnico("abrigo");
 
-        AbrigoResponse res = service.cadastrarAbrigo(cadastro("abrigo@exemplo.com", "contato@exemplo.com", "senha123"));
+        AbrigoResponse res = service.cadastrarAbrigo(cadastro(email, "Casa " + token(), null, "senha123"));
 
         assertEquals("PENDENTE", res.statusVerificacao());
-
-        ArgumentCaptor<Instituicao> captor = ArgumentCaptor.forClass(Instituicao.class);
-        verify(instituicaoRepo).save(captor.capture());
-        Instituicao salva = captor.getValue();
-
-        assertEquals("abrigo", salva.getRole());
-        assertEquals("abrigo@exemplo.com", salva.getEmail());
-        assertTrue(salva.isAtivo());
-        assertTrue(hasher.confere("senha123", salva.getSenhaHash()));
+        sincronizar();
+        Conta conta = contaRepo.findByEmail(email).orElseThrow();
+        assertEquals("abrigo", conta.getRole());
+        assertTrue(conta.isAtivo());
+        assertNotEquals("senha123", conta.getSenhaHash());
+        assertTrue(hasher.confere("senha123", conta.getSenhaHash()));
     }
 
     @Test
     void deveUsarEmailDeContatoComoLoginQuandoEmailNaoVem() {
-        when(contaRepo.existsByEmail("contato@exemplo.com")).thenReturn(false);
-        salvarDevolvendoComId();
+        String emailContato = emailUnico("contato");
 
-        service.cadastrarAbrigo(cadastro(null, "contato@exemplo.com", null));
+        service.cadastrarAbrigo(cadastro(null, "Casa " + token(), emailContato, null));
 
-        ArgumentCaptor<Instituicao> captor = ArgumentCaptor.forClass(Instituicao.class);
-        verify(instituicaoRepo).save(captor.capture());
-        assertEquals("contato@exemplo.com", captor.getValue().getEmail());
+        assertTrue(contaRepo.existsByEmail(emailContato));
     }
 
     @Test
-    void naoDeveCadastrarAbrigoSemEnderecoNemEmail() {
-        ResponseStatusException semEmail = assertThrows(ResponseStatusException.class,
-                () -> service.cadastrarAbrigo(cadastro(null, null, null)));
-        assertEquals(HttpStatus.BAD_REQUEST, semEmail.getStatusCode());
-
-        AbrigoRequest semEndereco = new AbrigoRequest("a@a.com", "Casa", null, null, null, null, null, null,
-                BigDecimal.ONE, BigDecimal.ONE);
+    void naoDeveCadastrarSemEmailNemEmailDeContato() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.cadastrarAbrigo(semEndereco));
-        assertEquals("Campo obrigatório: endereco", ex.getReason());
-        verify(instituicaoRepo, never()).save(any());
-    }
-
-    @Test
-    void naoDeveCadastrarAbrigoComSenhaCurta() {
-        when(contaRepo.existsByEmail("abrigo@exemplo.com")).thenReturn(false);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.cadastrarAbrigo(cadastro("abrigo@exemplo.com", null, "123")));
+                () -> service.cadastrarAbrigo(cadastro(null, "Casa " + token(), null, null)));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(instituicaoRepo, never()).save(any());
+    }
+
+    @Test
+    void naoDeveCadastrarSemEndereco() {
+        AbrigoRequest semEndereco = new AbrigoRequest(emailUnico("abrigo"), "Casa " + token(), null, null, null,
+                null, null, null, BigDecimal.ONE, BigDecimal.ONE);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.cadastrarAbrigo(semEndereco));
+
+        assertEquals("Campo obrigatório: endereco", ex.getReason());
+    }
+
+    @Test
+    void naoDeveCadastrarComSenhaCurta() {
+        String email = emailUnico("abrigo");
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.cadastrarAbrigo(cadastro(email, "Casa " + token(), null, "123")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertFalse(contaRepo.existsByEmail(email));
     }
 
     // ---------- listar ----------
 
     @Test
-    void deveListarPorNomeQuandoNaoHaFiltroDeNecessidade() {
-        Instituicao i = abrigoExistente();
-        when(instituicaoRepo.findByNomeContainingIgnoreCaseOrderByNome("casa")).thenReturn(List.of(i));
+    void deveListarPorNomeIgnorandoMaiusculasEOrdenandoPorNome() {
+        String t = token();
+        criar("Gama " + t);
+        criar("Alfa " + t);
+        criar("Beta " + t);
+        sincronizar();
 
-        List<AbrigoResponse> res = service.listarAbrigos("  casa  ", null);
+        List<AbrigoResponse> res = service.listarAbrigos("  " + t.toUpperCase() + "  ", null);
 
-        assertEquals(1, res.size());
-        assertEquals("Antigo", res.get(0).nome());
-        verify(instituicaoRepo, never()).buscarPorNomeENecessidade(anyString(), anyString(), any());
+        assertEquals(List.of("Alfa " + t, "Beta " + t, "Gama " + t), res.stream().map(AbrigoResponse::nome).toList());
     }
 
     @Test
-    void deveListarTodosQuandoNomeENecessidadeSaoNulos() {
-        when(instituicaoRepo.findByNomeContainingIgnoreCaseOrderByNome("")).thenReturn(List.of());
+    void deveFiltrarPorNecessidadeAbertaIgnorandoMaiusculas() {
+        String t = token();
+        AbrigoResponse comAberta = criar("Casa " + t + " A");
+        AbrigoResponse comAtendida = criar("Casa " + t + " B");
+        AbrigoResponse outraNecessidade = criar("Casa " + t + " C");
+        criarNecessidade(em.find(Instituicao.class, comAberta.id()), "Cobertores de lã", 10, 0, StatusNecessidade.ABERTA);
+        criarNecessidade(em.find(Instituicao.class, comAtendida.id()), "Cobertores", 10, 10, StatusNecessidade.ATENDIDA);
+        criarNecessidade(em.find(Instituicao.class, outraNecessidade.id()), "Alimentos", 10, 0, StatusNecessidade.ABERTA);
+        sincronizar();
 
-        assertTrue(service.listarAbrigos(null, null).isEmpty());
+        List<AbrigoResponse> res = service.listarAbrigos(t, " COBERTOR ");
+
+        assertEquals(List.of(comAberta.id()), res.stream().map(AbrigoResponse::id).toList());
     }
 
     @Test
-    void deveBuscarPorNomeENecessidadeAberta() {
-        when(instituicaoRepo.buscarPorNomeENecessidade("casa", "cobertor", StatusNecessidade.ABERTA))
-                .thenReturn(List.of(abrigoExistente()));
+    void listarSemFiltrosNaoDeveDarErro() {
+        criar("Casa " + token());
+        sincronizar();
 
-        List<AbrigoResponse> res = service.listarAbrigos("casa", " cobertor ");
-
-        assertEquals(1, res.size());
-        verify(instituicaoRepo, never()).findByNomeContainingIgnoreCaseOrderByNome(anyString());
+        assertFalse(service.listarAbrigos(null, null).isEmpty());
     }
 
     // ---------- atualizar ----------
 
     @Test
     void naoDeveAtualizarAbrigoInexistente() {
-        when(instituicaoRepo.findById(1)).thenReturn(Optional.empty());
-
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.atualizarAbrigo(1, atualizacao("Novo", null)));
+                () -> service.atualizarAbrigo(Integer.MAX_VALUE,
+                        new AbrigoRequest(null, "Novo", null, null, null, null, null, null, null, null)));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
     void naoDeveAtualizarParaCnpjJaUsadoPorOutroAbrigo() {
-        when(instituicaoRepo.findById(1)).thenReturn(Optional.of(abrigoExistente()));
-        when(instituicaoRepo.existsByCnpj("22.222.222/0001-22")).thenReturn(true);
+        String cnpj = cnpjAleatorio();
+        service.atualizarAbrigo(criar("Casa " + token()).id(),
+                new AbrigoRequest(null, null, cnpj, null, null, null, null, null, null, null));
+        AbrigoResponse outro = criar("Casa " + token());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.atualizarAbrigo(1, atualizacao(null, "22.222.222/0001-22")));
+                () -> service.atualizarAbrigo(outro.id(),
+                        new AbrigoRequest(null, null, cnpj, null, null, null, null, null, null, null)));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-        verify(instituicaoRepo, never()).save(any());
     }
 
     @Test
-    void naoDeveConsultarDuplicidadeQuandoCnpjNaoMudou() {
-        Instituicao i = abrigoExistente();
-        when(instituicaoRepo.findById(1)).thenReturn(Optional.of(i));
-        when(instituicaoRepo.save(i)).thenReturn(i);
+    void devePermitirReenviarOMesmoCnpjDoProprioAbrigo() {
+        String cnpj = cnpjAleatorio();
+        AbrigoResponse abrigo = criar("Casa " + token());
+        AbrigoRequest mudaCnpj = new AbrigoRequest(null, null, cnpj, null, null, null, null, null, null, null);
+        service.atualizarAbrigo(abrigo.id(), mudaCnpj);
 
-        service.atualizarAbrigo(1, atualizacao(null, "11.111.111/0001-11"));
+        AbrigoResponse res = service.atualizarAbrigo(abrigo.id(), mudaCnpj);
 
-        verify(instituicaoRepo, never()).existsByCnpj(anyString());
+        assertEquals(cnpj, res.cnpj());
     }
 
     @Test
     void deveAtualizarLocalizacaoEDemaisCamposInformados() {
-        Instituicao i = abrigoExistente();
-        when(instituicaoRepo.findById(1)).thenReturn(Optional.of(i));
-        when(instituicaoRepo.existsByCnpj("22.222.222/0001-22")).thenReturn(false);
-        when(instituicaoRepo.save(i)).thenReturn(i);
+        AbrigoResponse abrigo = criar("Casa " + token());
+        AbrigoRequest req = new AbrigoRequest(null, "Nome novo", null, "Nova descrição", "(11) 90000-0000",
+                "novo@exemplo.com", "Rua Nova, 1", "11111-111", new BigDecimal("-22.000000"),
+                new BigDecimal("-47.000000"));
 
-        AbrigoRequest req = new AbrigoRequest(null, "Novo", "22.222.222/0001-22", "Nova descrição", "(11) 9", "novo@x.com",
-                "Rua Nova, 1", "11111-111", BigDecimal.valueOf(-22.0), BigDecimal.valueOf(-47.0));
+        AbrigoResponse res = service.atualizarAbrigo(abrigo.id(), req);
 
-        AbrigoResponse res = service.atualizarAbrigo(1, req);
-
-        assertEquals("Novo", res.nome());
-        assertEquals("22.222.222/0001-22", res.cnpj());
+        assertEquals("Nome novo", res.nome());
         assertEquals("Nova descrição", res.descricao());
-        assertEquals("novo@x.com", res.emailContato());
+        assertEquals("novo@exemplo.com", res.emailContato());
         assertEquals("Rua Nova, 1", res.endereco());
         assertEquals("11111-111", res.cep());
-        assertEquals(0, BigDecimal.valueOf(-22.0).compareTo(res.latitude()));
-        assertEquals(0, BigDecimal.valueOf(-47.0).compareTo(res.longitude()));
+        assertEquals(0, new BigDecimal("-22").compareTo(res.latitude()));
+        assertEquals(0, new BigDecimal("-47").compareTo(res.longitude()));
+    }
+
+    @Test
+    void naoDeveMudarOQueNaoFoiEnviado() {
+        AbrigoResponse abrigo = service.cadastrarAbrigo(cadastro(emailUnico("abrigo"), "Casa " + token(), null, null));
+
+        AbrigoResponse res = service.atualizarAbrigo(abrigo.id(),
+                new AbrigoRequest(null, "   ", null, null, null, null, null, null, null, null));
+
+        assertEquals(abrigo.nome(), res.nome());
+        assertEquals("Rua A, 10", res.endereco());
     }
 }

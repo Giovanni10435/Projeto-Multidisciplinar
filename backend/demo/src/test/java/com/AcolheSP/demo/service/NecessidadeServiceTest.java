@@ -3,23 +3,21 @@ package com.AcolheSP.demo.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
+
+import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.AcolheSP.demo.dto.NecessidadeRequest;
@@ -27,85 +25,91 @@ import com.AcolheSP.demo.dto.NecessidadeResponse;
 import com.AcolheSP.demo.model.Instituicao;
 import com.AcolheSP.demo.model.Necessidade;
 import com.AcolheSP.demo.model.StatusNecessidade;
-import com.AcolheSP.demo.repository.InstituicaoRepository;
 import com.AcolheSP.demo.repository.NecessidadeRepository;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@Transactional
 class NecessidadeServiceTest {
 
-    private static final Integer INST_ID = 1;
+    @Autowired
+    private EntityManager em;
 
-    @Mock
-    private NecessidadeRepository necessidadeRepo;
-
-    @Mock
-    private InstituicaoRepository instituicaoRepo;
-
-    private NecessidadeService service;
-    private Instituicao instituicao;
-
-    @BeforeEach
-    void setUp() {
-        service = new NecessidadeService(necessidadeRepo, instituicaoRepo);
-        instituicao = new Instituicao();
-        instituicao.setId(INST_ID);
+    private static String token() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private void instituicaoExiste() {
-        when(instituicaoRepo.findById(INST_ID)).thenReturn(Optional.of(instituicao));
+    private static String emailUnico(String prefixo) {
+        return prefixo + "." + UUID.randomUUID() + "@exemplo.com";
     }
 
-    private void salvarDevolvendoComId() {
-        when(necessidadeRepo.save(any(Necessidade.class))).thenAnswer(inv -> {
-            Necessidade n = inv.getArgument(0);
-            n.setId(7);
-            return n;
-        });
+    // Abrigo sem localização (para testes que não precisam de mapa)
+    private Instituicao criarInstituicao(String nome) {
+        Instituicao i = new Instituicao();
+        i.setEmail(emailUnico("abrigo"));
+        i.setRole("abrigo");
+        i.setNome(nome);
+        em.persist(i);
+        em.flush();
+        return i;
     }
 
-    private Necessidade necessidade(int solicitada, int recebida, StatusNecessidade status) {
+    private Necessidade criarNecessidade(Instituicao inst, String descricao, int solicitada, int recebida,
+            StatusNecessidade status) {
         Necessidade n = new Necessidade();
-        n.setId(7);
-        n.setDescricao("Cobertores");
+        n.setInstituicao(inst);
+        n.setDescricao(descricao);
         n.setQuantidadeSolicitada(solicitada);
         n.setQuantidadeRecebida(recebida);
         n.setStatus(status);
-        n.setInstituicao(instituicao);
+        em.persist(n);
+        em.flush();
         return n;
     }
 
-    private void necessidadeExiste(Necessidade n) {
-        when(necessidadeRepo.findByIdAndInstituicaoId(7, INST_ID)).thenReturn(Optional.of(n));
+    private void sincronizar() {
+        em.flush();
+        em.clear();
+    }
+
+    private static final int ABRIGO_INEXISTENTE = Integer.MAX_VALUE;
+
+    @Autowired
+    private NecessidadeService service;
+
+    @Autowired
+    private NecessidadeRepository necessidadeRepo;
+
+    private Instituicao inst;
+
+    @BeforeEach
+    void criarAbrigo() {
+        inst = criarInstituicao("Casa " + token());
     }
 
     private ResponseStatusException erroAoCadastrar(NecessidadeRequest req) {
-        return assertThrows(ResponseStatusException.class, () -> service.cadastrarNecessidade(INST_ID, req));
+        return assertThrows(ResponseStatusException.class, () -> service.cadastrarNecessidade(inst.getId(), req));
     }
 
     // ---------- cadastrar ----------
 
     @Test
-    void deveCadastrarNecessidadeComPadroes() {
-        instituicaoExiste();
-        salvarDevolvendoComId();
-
-        NecessidadeResponse res = service.cadastrarNecessidade(INST_ID,
+    void deveCadastrarNecessidadeComPadroesESalvarNoBanco() {
+        NecessidadeResponse res = service.cadastrarNecessidade(inst.getId(),
                 new NecessidadeRequest("Cobertores", 50, null, null));
 
-        assertEquals(7, res.id());
         assertEquals("Cobertores", res.descricao());
         assertEquals(50, res.quantidadeSolicitada());
         assertEquals(0, res.quantidadeRecebida());
         assertEquals("ABERTA", res.status());
-        assertEquals(INST_ID, res.instituicaoId());
+        assertEquals(inst.getId(), res.instituicaoId());
+
+        sincronizar();
+        assertEquals(1, necessidadeRepo.findByInstituicaoId(inst.getId()).size());
     }
 
     @Test
     void deveCadastrarNecessidadeComStatusEQuantidadeRecebidaInformados() {
-        instituicaoExiste();
-        salvarDevolvendoComId();
-
-        NecessidadeResponse res = service.cadastrarNecessidade(INST_ID,
+        NecessidadeResponse res = service.cadastrarNecessidade(inst.getId(),
                 new NecessidadeRequest("Cobertores", 50, 10, "atendida"));
 
         assertEquals(10, res.quantidadeRecebida());
@@ -114,33 +118,27 @@ class NecessidadeServiceTest {
 
     @Test
     void naoDeveCadastrarEmAbrigoInexistente() {
-        when(instituicaoRepo.findById(INST_ID)).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = erroAoCadastrar(new NecessidadeRequest("Cobertores", 50, null, null));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.cadastrarNecessidade(ABRIGO_INEXISTENTE,
+                        new NecessidadeRequest("Cobertores", 50, null, null)));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        verify(necessidadeRepo, never()).save(any());
     }
 
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = { "", "   " })
     void naoDeveCadastrarSemDescricao(String descricao) {
-        instituicaoExiste();
-
         ResponseStatusException ex = erroAoCadastrar(new NecessidadeRequest(descricao, 50, null, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         assertEquals("Campo obrigatório: descricao", ex.getReason());
-        verify(necessidadeRepo, never()).save(any());
     }
 
     @ParameterizedTest
     @NullSource
     @ValueSource(ints = { 0, -1, -50 })
     void naoDeveCadastrarComQuantidadeSolicitadaInvalida(Integer quantidade) {
-        instituicaoExiste();
-
         ResponseStatusException ex = erroAoCadastrar(new NecessidadeRequest("Cobertores", quantidade, null, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
@@ -149,8 +147,6 @@ class NecessidadeServiceTest {
 
     @Test
     void naoDeveCadastrarComQuantidadeRecebidaNegativa() {
-        instituicaoExiste();
-
         ResponseStatusException ex = erroAoCadastrar(new NecessidadeRequest("Cobertores", 50, -1, null));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
@@ -159,8 +155,6 @@ class NecessidadeServiceTest {
 
     @Test
     void naoDeveCadastrarComStatusInvalido() {
-        instituicaoExiste();
-
         ResponseStatusException ex = erroAoCadastrar(new NecessidadeRequest("Cobertores", 50, null, "qualquer"));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
@@ -171,11 +165,9 @@ class NecessidadeServiceTest {
 
     @Test
     void deveAtualizarSomenteOsCamposInformados() {
-        Necessidade n = necessidade(50, 5, StatusNecessidade.ABERTA);
-        necessidadeExiste(n);
-        when(necessidadeRepo.save(n)).thenReturn(n);
+        Necessidade n = criarNecessidade(inst, "Cobertores", 50, 5, StatusNecessidade.ABERTA);
 
-        NecessidadeResponse res = service.atualizarNecessidade(INST_ID, 7,
+        NecessidadeResponse res = service.atualizarNecessidade(inst.getId(), n.getId(),
                 new NecessidadeRequest("Cobertores de lã", null, null, null));
 
         assertEquals("Cobertores de lã", res.descricao());
@@ -185,107 +177,101 @@ class NecessidadeServiceTest {
     }
 
     @Test
-    void deveAtualizarQuantidadesEStatus() {
-        Necessidade n = necessidade(50, 5, StatusNecessidade.ABERTA);
-        necessidadeExiste(n);
-        when(necessidadeRepo.save(n)).thenReturn(n);
+    void deveAtualizarQuantidadesEStatusENoBanco() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 50, 5, StatusNecessidade.ABERTA);
 
-        NecessidadeResponse res = service.atualizarNecessidade(INST_ID, 7,
+        NecessidadeResponse res = service.atualizarNecessidade(inst.getId(), n.getId(),
                 new NecessidadeRequest(null, 80, 80, "ATENDIDA"));
 
         assertEquals(80, res.quantidadeSolicitada());
         assertEquals(80, res.quantidadeRecebida());
         assertEquals("ATENDIDA", res.status());
+
+        sincronizar();
+        Necessidade doBanco = necessidadeRepo.findById(n.getId()).orElseThrow();
+        assertEquals(80, doBanco.getQuantidadeRecebida());
+        assertEquals(StatusNecessidade.ATENDIDA, doBanco.getStatus());
     }
 
     @Test
-    void naoDeveAtualizarNecessidadeInexistenteNoAbrigo() {
-        when(necessidadeRepo.findByIdAndInstituicaoId(7, INST_ID)).thenReturn(Optional.empty());
+    void naoDeveAtualizarNecessidadeDeOutroAbrigo() {
+        Instituicao outro = criarInstituicao("Casa " + token());
+        Necessidade doOutro = criarNecessidade(outro, "Cobertores", 50, 0, StatusNecessidade.ABERTA);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.atualizarNecessidade(INST_ID, 7, new NecessidadeRequest("x", null, null, null)));
+                () -> service.atualizarNecessidade(inst.getId(), doOutro.getId(),
+                        new NecessidadeRequest("x", null, null, null)));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        verify(necessidadeRepo, never()).save(any());
     }
 
     @ParameterizedTest
     @ValueSource(ints = { 0, -3 })
     void naoDeveAtualizarComQuantidadeSolicitadaInvalida(int quantidade) {
-        necessidadeExiste(necessidade(50, 5, StatusNecessidade.ABERTA));
+        Necessidade n = criarNecessidade(inst, "Cobertores", 50, 5, StatusNecessidade.ABERTA);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.atualizarNecessidade(INST_ID, 7, new NecessidadeRequest(null, quantidade, null, null)));
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(necessidadeRepo, never()).save(any());
-    }
-
-    @Test
-    void naoDeveAtualizarComQuantidadeRecebidaNegativa() {
-        necessidadeExiste(necessidade(50, 5, StatusNecessidade.ABERTA));
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.atualizarNecessidade(INST_ID, 7, new NecessidadeRequest(null, null, -1, null)));
+                () -> service.atualizarNecessidade(inst.getId(), n.getId(),
+                        new NecessidadeRequest(null, quantidade, null, null)));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
-    void naoDeveAtualizarComStatusInvalido() {
-        necessidadeExiste(necessidade(50, 5, StatusNecessidade.ABERTA));
+    void naoDeveAtualizarComQuantidadeRecebidaNegativaOuStatusInvalido() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 50, 5, StatusNecessidade.ABERTA);
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.atualizarNecessidade(INST_ID, 7, new NecessidadeRequest(null, null, null, "xyz")));
+        ResponseStatusException negativa = assertThrows(ResponseStatusException.class,
+                () -> service.atualizarNecessidade(inst.getId(), n.getId(),
+                        new NecessidadeRequest(null, null, -1, null)));
+        ResponseStatusException invalido = assertThrows(ResponseStatusException.class,
+                () -> service.atualizarNecessidade(inst.getId(), n.getId(),
+                        new NecessidadeRequest(null, null, null, "xyz")));
 
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, negativa.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, invalido.getStatusCode());
     }
 
     // ---------- remover ----------
 
     @Test
-    void deveRemoverNecessidade() {
-        Necessidade n = necessidade(50, 0, StatusNecessidade.ABERTA);
-        necessidadeExiste(n);
+    void deveRemoverNecessidadeDoBanco() {
+        Necessidade n = criarNecessidade(inst, "Cobertores", 50, 0, StatusNecessidade.ABERTA);
 
-        service.removerNecessidade(INST_ID, 7);
+        service.removerNecessidade(inst.getId(), n.getId());
 
-        verify(necessidadeRepo).delete(n);
+        sincronizar();
+        assertTrue(necessidadeRepo.findById(n.getId()).isEmpty());
     }
 
     @Test
     void naoDeveRemoverNecessidadeInexistenteNoAbrigo() {
-        when(necessidadeRepo.findByIdAndInstituicaoId(7, INST_ID)).thenReturn(Optional.empty());
-
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.removerNecessidade(INST_ID, 7));
+                () -> service.removerNecessidade(inst.getId(), Integer.MAX_VALUE));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        verify(necessidadeRepo, never()).delete(any(Necessidade.class));
     }
 
     // ---------- listar ----------
 
     @Test
-    void deveListarNecessidadesDoAbrigo() {
-        instituicaoExiste();
-        when(necessidadeRepo.findByInstituicaoId(INST_ID))
-                .thenReturn(List.of(necessidade(50, 0, StatusNecessidade.ABERTA)));
+    void deveListarSoAsNecessidadesDoAbrigo() {
+        Instituicao outro = criarInstituicao("Casa " + token());
+        criarNecessidade(inst, "Cobertores", 50, 0, StatusNecessidade.ABERTA);
+        criarNecessidade(inst, "Alimentos", 20, 20, StatusNecessidade.ATENDIDA);
+        criarNecessidade(outro, "Roupas", 10, 0, StatusNecessidade.ABERTA);
+        sincronizar();
 
-        List<NecessidadeResponse> lista = service.listarNecessidades(INST_ID);
+        List<NecessidadeResponse> lista = service.listarNecessidades(inst.getId());
 
-        assertEquals(1, lista.size());
-        assertEquals("Cobertores", lista.get(0).descricao());
+        assertEquals(2, lista.size());
     }
 
     @Test
     void naoDeveListarNecessidadesDeAbrigoInexistente() {
-        when(instituicaoRepo.findById(INST_ID)).thenReturn(Optional.empty());
-
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.listarNecessidades(INST_ID));
+                () -> service.listarNecessidades(ABRIGO_INEXISTENTE));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        verify(necessidadeRepo, never()).findByInstituicaoId(any());
     }
 }

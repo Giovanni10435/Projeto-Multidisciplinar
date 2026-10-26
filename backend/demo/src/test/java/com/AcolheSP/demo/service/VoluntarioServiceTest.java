@@ -1,155 +1,139 @@
 package com.AcolheSP.demo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.util.Optional;
+import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.AcolheSP.demo.dto.VoluntarioRequest;
 import com.AcolheSP.demo.dto.VoluntarioResponse;
-import com.AcolheSP.demo.model.Voluntario;
+import com.AcolheSP.demo.model.Conta;
 import com.AcolheSP.demo.repository.ContaRepository;
-import com.AcolheSP.demo.repository.VoluntarioRepository;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@Transactional
 class VoluntarioServiceTest {
 
-    @Mock
-    private VoluntarioRepository voluntarioRepo;
+    @Autowired
+    private EntityManager em;
 
-    @Mock
-    private ContaRepository contaRepo;
+    private static String emailUnico(String prefixo) {
+        return prefixo + "." + UUID.randomUUID() + "@exemplo.com";
+    }
 
-    private final PasswordHasher hasher = new PasswordHasher();
+    private void sincronizar() {
+        em.flush();
+        em.clear();
+    }
+
+    @Autowired
     private VoluntarioService service;
 
-    @BeforeEach
-    void setUp() {
-        service = new VoluntarioService(voluntarioRepo, contaRepo, hasher);
-    }
+    @Autowired
+    private ContaRepository contaRepo;
 
-    private void salvarDevolvendoComId() {
-        when(voluntarioRepo.save(any(Voluntario.class))).thenAnswer(inv -> {
-            Voluntario v = inv.getArgument(0);
-            v.setId(10);
-            return v;
-        });
-    }
+    @Autowired
+    private PasswordHasher hasher;
 
     private ResponseStatusException cadastrarComErro(VoluntarioRequest req) {
         return assertThrows(ResponseStatusException.class, () -> service.cadastrar(req));
     }
 
     @Test
-    void deveCadastrarVoluntarioComSenha() {
-        when(contaRepo.existsByEmail("ana@exemplo.com")).thenReturn(false);
-        salvarDevolvendoComId();
+    void deveCadastrarVoluntarioComSenhaNoBanco() {
+        String email = emailUnico("ana");
 
-        VoluntarioResponse res = service.cadastrar(new VoluntarioRequest(
-                "ana@exemplo.com", "Ana", "(11) 99999-0000", "Sábados", "senha123"));
+        VoluntarioResponse res = service.cadastrar(
+                new VoluntarioRequest(email, "Ana", "(11) 99999-0000", "Sábados", "senha123"));
 
-        assertEquals(10, res.id());
-        assertEquals("ana@exemplo.com", res.email());
+        assertEquals(email, res.email());
         assertEquals("Ana", res.nome());
         assertEquals("(11) 99999-0000", res.telefone());
         assertEquals("Sábados", res.disponibilidade());
 
-        ArgumentCaptor<Voluntario> captor = ArgumentCaptor.forClass(Voluntario.class);
-        verify(voluntarioRepo).save(captor.capture());
-        Voluntario salvo = captor.getValue();
-
-        assertEquals("usuario", salvo.getRole());
-        assertTrue(salvo.isAtivo());
-        assertNotNull(salvo.getSenhaHash());
-        assertNotEquals("senha123", salvo.getSenhaHash());
-        assertTrue(hasher.confere("senha123", salvo.getSenhaHash()));
+        sincronizar();
+        Conta conta = contaRepo.findByEmail(email).orElseThrow();
+        assertEquals(res.id(), conta.getId());
+        assertEquals("usuario", conta.getRole());
+        assertTrue(conta.isAtivo());
+        assertNotEquals("senha123", conta.getSenhaHash());
+        assertTrue(hasher.confere("senha123", conta.getSenhaHash()));
     }
 
     @Test
     void deveCadastrarVoluntarioSemSenhaEDeixarHashNulo() {
-        when(contaRepo.existsByEmail("ana@exemplo.com")).thenReturn(false);
-        salvarDevolvendoComId();
+        String email = emailUnico("ana");
 
-        service.cadastrar(new VoluntarioRequest("ana@exemplo.com", "Ana", null, null));
+        service.cadastrar(new VoluntarioRequest(email, "Ana", null, null));
 
-        ArgumentCaptor<Voluntario> captor = ArgumentCaptor.forClass(Voluntario.class);
-        verify(voluntarioRepo).save(captor.capture());
-        assertNull(captor.getValue().getSenhaHash());
+        sincronizar();
+        assertNull(contaRepo.findByEmail(email).orElseThrow().getSenhaHash());
     }
 
     @Test
     void naoDeveCadastrarSemEmail() {
         ResponseStatusException ex = cadastrarComErro(new VoluntarioRequest(null, "Ana", null, null));
+
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         assertEquals("Campo obrigatório: email", ex.getReason());
-        verify(voluntarioRepo, never()).save(any());
     }
 
     @Test
     void naoDeveCadastrarSemNome() {
-        ResponseStatusException ex = cadastrarComErro(new VoluntarioRequest("ana@exemplo.com", "  ", null, null));
+        ResponseStatusException ex = cadastrarComErro(new VoluntarioRequest(emailUnico("ana"), "  ", null, null));
+
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         assertEquals("Campo obrigatório: nome", ex.getReason());
-        verify(voluntarioRepo, never()).save(any());
     }
 
     @Test
     void naoDeveCadastrarComEmailJaExistente() {
-        when(contaRepo.existsByEmail("ana@exemplo.com")).thenReturn(true);
+        String email = emailUnico("ana");
+        service.cadastrar(new VoluntarioRequest(email, "Ana", null, null));
 
-        ResponseStatusException ex = cadastrarComErro(new VoluntarioRequest("ana@exemplo.com", "Ana", null, null));
+        ResponseStatusException ex = cadastrarComErro(new VoluntarioRequest(email, "Outra Ana", null, null));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-        verify(voluntarioRepo, never()).save(any());
     }
 
     @Test
     void naoDeveCadastrarComSenhaCurta() {
-        when(contaRepo.existsByEmail("ana@exemplo.com")).thenReturn(false);
+        String email = emailUnico("ana");
 
-        ResponseStatusException ex = cadastrarComErro(
-                new VoluntarioRequest("ana@exemplo.com", "Ana", null, null, "123"));
+        ResponseStatusException ex = cadastrarComErro(new VoluntarioRequest(email, "Ana", null, null, "123"));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(voluntarioRepo, never()).save(any());
+        assertFalse(contaRepo.existsByEmail(email));
     }
 
     @Test
     void deveBuscarVoluntarioExistente() {
-        Voluntario v = new Voluntario();
-        v.setId(5);
-        v.setEmail("ana@exemplo.com");
-        v.setNome("Ana");
-        when(voluntarioRepo.findById(5)).thenReturn(Optional.of(v));
+        var criado = service.cadastrar(new VoluntarioRequest(emailUnico("ana"), "Ana", null, null));
+        sincronizar();
 
-        VoluntarioResponse res = service.buscar(5);
+        VoluntarioResponse res = service.buscar(criado.id());
 
-        assertEquals(5, res.id());
+        assertEquals(criado.id(), res.id());
         assertEquals("Ana", res.nome());
     }
 
     @Test
     void naoDeveBuscarVoluntarioInexistente() {
-        when(voluntarioRepo.findById(99)).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.buscar(99));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.buscar(Integer.MAX_VALUE));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
