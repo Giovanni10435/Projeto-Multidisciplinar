@@ -1,6 +1,7 @@
 package com.AcolheSP.demo.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,9 @@ public interface InstituicaoRepository extends JpaRepository<Instituicao, Intege
 
     // UC01: busca por nome (parte do nome, sem diferenciar maiúscula/minúscula)
     List<Instituicao> findByNomeContainingIgnoreCaseOrderByNome(String nome);
+
+    // Apenas para chamar e encontrar por ID atrelado ao abrigo, caso tenha
+    Optional<Instituicao> findByConta_Id(Integer contaId);
 
     // UC01: busca por nome + tipo de necessidade (abrigos que têm necessidade ABERTA com esse texto)
     @Query("""

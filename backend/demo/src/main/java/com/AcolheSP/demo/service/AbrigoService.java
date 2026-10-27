@@ -11,6 +11,7 @@ import com.AcolheSP.demo.dto.AbrigoDetalheResponse;
 import com.AcolheSP.demo.dto.AbrigoRequest;
 import com.AcolheSP.demo.dto.AbrigoResponse;
 import com.AcolheSP.demo.dto.NecessidadeResponse;
+import com.AcolheSP.demo.model.Conta;
 import com.AcolheSP.demo.model.Instituicao;
 import com.AcolheSP.demo.model.Localizacao;
 import com.AcolheSP.demo.model.StatusNecessidade;
@@ -38,35 +39,63 @@ public class AbrigoService {
     // UC07 - Cadastrar abrigo
     @Transactional
     public AbrigoResponse cadastrarAbrigo(AbrigoRequest req) {
-        // Sem login por enquanto: se não vier "email", usa o emailContato como login da conta
-        String email = vazioParaNull(req.email()) != null ? req.email() : req.emailContato();
-
-        exigir(email, "email");
         exigir(req.nome(), "nome");
         exigir(req.endereco(), "endereco");
+
         if (req.latitude() == null || req.longitude() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "latitude e longitude são obrigatórias");
-        }
-        if (contaRepo.existsByEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe uma conta com esse email");
-        }
-        if (vazioParaNull(req.cnpj()) != null && instituicaoRepo.existsByCnpj(req.cnpj())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe um abrigo com esse CNPJ");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "latitude e longitude são obrigatórias"
+            );
         }
 
-        String senhaHash = passwordHasher.hashDaNovaSenha(req.senha());
+        String cnpj = vazioParaNull(req.cnpj());
+
+        if (cnpj != null && instituicaoRepo.existsByCnpj(cnpj)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Já existe um abrigo com esse CNPJ"
+            );
+        }
+
+        String email = vazioParaNull(req.email());
+        boolean temEmail = email != null;
+        boolean temSenha = vazioParaNull(req.senha()) != null;
+
+        if (!temEmail && temSenha) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Para definir uma senha, informe o email da conta"
+            );
+        }
+
+        if (temEmail && contaRepo.existsByEmail(email)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Já existe uma conta com esse email"
+            );
+        }
 
         var inst = new Instituicao();
-        inst.setEmail(email);
-        inst.setSenhaHash(senhaHash);
-        inst.setRole("abrigo");
-        inst.setAtivo(true);
         inst.setNome(req.nome());
-        inst.setCnpj(vazioParaNull(req.cnpj()));
+        inst.setCnpj(cnpj);
         inst.setDescricao(req.descricao());
         inst.setTelefone(req.telefone());
         inst.setEmailContato(req.emailContato());
         inst.setStatusVerificacao(StatusVerificacao.PENDENTE);
+
+        // Cria e vincula uma conta somente quando há credenciais.
+        if (temEmail) {
+            var conta = new Conta();
+            conta.setEmail(email);
+            conta.setSenhaHash(
+                    passwordHasher.hashDaNovaSenha(req.senha())
+            );
+            conta.setRole("abrigo");
+            conta.setAtivo(true);
+
+            inst.setConta(contaRepo.save(conta));
+        }
 
         var loc = new Localizacao();
         loc.setEndereco(req.endereco());
@@ -74,6 +103,7 @@ public class AbrigoService {
         loc.setLatitude(req.latitude());
         loc.setLongitude(req.longitude());
         loc.setInstituicao(inst);
+
         inst.setLocalizacao(loc);
 
         return AbrigoResponse.de(instituicaoRepo.save(inst));

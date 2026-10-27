@@ -43,9 +43,9 @@ class MapaServiceTest {
     // Abrigo sem localização (para testes que não precisam de mapa)
     private Instituicao criarInstituicao(String nome) {
         Instituicao i = new Instituicao();
-        i.setEmail(emailUnico("abrigo"));
-        i.setRole("abrigo");
+
         i.setNome(nome);
+        
         em.persist(i);
         em.flush();
         return i;

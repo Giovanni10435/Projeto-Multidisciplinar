@@ -62,10 +62,6 @@ class DoacaoServiceTest {
 
     private Necessidade criarNecessidade(StatusNecessidade status) {
         Instituicao instituicao = new Instituicao();
-        instituicao.setEmail(
-                "yago.abrigo." + UUID.randomUUID() + "@exemplo.com"
-        );
-        instituicao.setRole("abrigo");
         instituicao.setNome("Abrigo do Yago da Silva");
         instituicao.setDescricao("Abrigo para acolhimento");
         instituicao.setTelefone("(11) 97300-6106");
@@ -84,7 +80,7 @@ class DoacaoServiceTest {
         entityManager.flush();
 
         return necessidade;
-    }
+        }
 
     private void sincronizarELimparContexto() {
         entityManager.flush();

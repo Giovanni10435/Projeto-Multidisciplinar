@@ -3,6 +3,8 @@ package com.AcolheSP.demo.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,8 +31,9 @@ import com.AcolheSP.demo.model.StatusNecessidade;
 import com.AcolheSP.demo.repository.ContaRepository;
 
 /**
- * Complementa o AbrigoServiceTest: senha, e-mail de contato como login,
- * listagem com filtros e atualização de campos, tudo no banco.
+ * Complementa o AbrigoServiceTest: senha, conta opcional,
+ * contato, listagem com filtros e atualização de campos,
+ * tudo no banco.
  */
 @SpringBootTest
 @Transactional
@@ -50,11 +53,11 @@ class AbrigoServiceUnitTest {
     // Abrigo sem localização (para testes que não precisam de mapa)
     private Instituicao criarInstituicao(String nome) {
         Instituicao i = new Instituicao();
-        i.setEmail(emailUnico("abrigo"));
-        i.setRole("abrigo");
         i.setNome(nome);
+
         em.persist(i);
         em.flush();
+
         return i;
     }
 
@@ -117,20 +120,46 @@ class AbrigoServiceUnitTest {
     }
 
     @Test
-    void deveUsarEmailDeContatoComoLoginQuandoEmailNaoVem() {
+    void deveCadastrarComEmailDeContatoSemCriarConta() {
         String emailContato = emailUnico("contato");
+        long totalContasAntes = contaRepo.count();
 
-        service.cadastrarAbrigo(cadastro(null, "Casa " + token(), emailContato, null));
+        AbrigoResponse res = service.cadastrarAbrigo(
+                cadastro(null, "Casa " + token(), emailContato, null)
+        );
 
-        assertTrue(contaRepo.existsByEmail(emailContato));
+        sincronizar();
+
+        Instituicao salva = em.find(Instituicao.class, res.id());
+
+        assertNotNull(salva);
+        assertEquals(emailContato, salva.getEmailContato());
+        assertNull(salva.getConta());
+        assertNotNull(salva.getLocalizacao());
+
+        assertFalse(contaRepo.existsByEmail(emailContato));
+        assertEquals(totalContasAntes, contaRepo.count());
     }
 
     @Test
-    void naoDeveCadastrarSemEmailNemEmailDeContato() {
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.cadastrarAbrigo(cadastro(null, "Casa " + token(), null, null)));
+    void deveCadastrarSemEmailNemEmailDeContato() {
+        long totalContasAntes = contaRepo.count();
 
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        AbrigoResponse res = service.cadastrarAbrigo(
+                cadastro(null, "Casa " + token(), null, null)
+        );
+
+        sincronizar();
+
+        Instituicao salva = em.find(Instituicao.class, res.id());
+
+        assertNotNull(salva);
+        assertEquals(res.nome(), salva.getNome());
+        assertNull(salva.getConta());
+        assertNull(salva.getEmailContato());
+        assertNotNull(salva.getLocalizacao());
+
+        assertEquals(totalContasAntes, contaRepo.count());
     }
 
     @Test
