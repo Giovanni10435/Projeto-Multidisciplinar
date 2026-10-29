@@ -46,7 +46,7 @@
         <div v-if="aba === 'perfil'">
 
           <!-- Modo visualização -->
-          <div v-if="modoPerfil === 'ver'">
+          <div v-if="somenteLeitura || modoPerfil === 'ver'">
             <!-- Capacidade / Ocupação / Vagas -->
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px;">
               <div :style="estiloStat">
@@ -90,10 +90,15 @@
                 <div :style="estiloCardLabel">E-MAIL</div>
                 <div :style="estiloCardValor">{{ instituicao.email_contato || '—' }}</div>
               </div>
+              <div v-if="instituicao.descricao" :style="[estiloCard, 'grid-column: 1 / -1;']">
+                <div :style="estiloCardLabel">DESCRIÇÃO</div>
+                <div :style="estiloCardValor">{{ instituicao.descricao }}</div>
+              </div>
             </div>
 
             <button
               type="button"
+              v-if="!somenteLeitura"
               @click="iniciarEdicao"
               style="display: block; padding: 10px 18px; margin-bottom: 16px; background: #eff6ff; color: #1d4ed8; font-size: 14px; font-weight: 700; border: 1px solid #2563eb; border-radius: 10px; cursor: pointer;"
             >
@@ -102,6 +107,7 @@
 
             <button
               type="button"
+              v-if="!somenteLeitura"
               @click="emit('sair')"
               style="padding: 9px 16px; background: #fef2f2; color: #b91c1c; font-size: 14px; font-weight: 700; border: 1px solid #fecaca; border-radius: 10px; cursor: pointer;"
             >
@@ -173,10 +179,13 @@
         <!-- ================= ABA DOAÇÕES ================= -->
         <div v-else-if="aba === 'doacoes'">
           <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.5;">
-            Liste os itens que seu abrigo precisa. Os usuários e voluntários verão esses pedidos.
+            {{ somenteLeitura
+              ? 'Estes são os itens que o abrigo está precisando no momento.'
+              : 'Liste os itens que seu abrigo precisa. Os usuários e voluntários verão esses pedidos.' }}
           </p>
 
           <form
+            v-if="!somenteLeitura"
             @submit.prevent="adicionarDoacao"
             style="padding: 18px; margin-bottom: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px;"
           >
@@ -228,7 +237,7 @@
                   URGENTE
                 </span>
               </div>
-              <button type="button" @click="removerDoacao(d.id)" aria-label="Remover pedido" :style="estiloBotaoRemover">
+              <button v-if="!somenteLeitura" type="button" @click="removerDoacao(d.id)" aria-label="Remover pedido" :style="estiloBotaoRemover">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />
                 </svg>
@@ -236,7 +245,7 @@
             </div>
 
             <p v-if="!doacoesOrdenadas.length" style="margin: 0; font-size: 14px; color: #94a3b8;">
-              Nenhum pedido de doação ainda.
+              {{ somenteLeitura ? 'Este abrigo ainda não cadastrou pedidos de doação.' : 'Nenhum pedido de doação ainda.' }}
             </p>
           </div>
         </div>
@@ -244,10 +253,13 @@
         <!-- ================= ABA VOLUNTÁRIOS ================= -->
         <div v-else>
           <p style="margin: 0 0 18px; font-size: 14px; color: #475569;">
-            Cadastre os horários disponíveis para voluntários.
+            {{ somenteLeitura
+              ? 'Veja os horários em que o abrigo precisa de voluntários.'
+              : 'Cadastre os horários disponíveis para voluntários.' }}
           </p>
 
           <form
+            v-if="!somenteLeitura"
             @submit.prevent="adicionarHorario"
             style="padding: 18px; margin-bottom: 18px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px;"
           >
@@ -290,7 +302,7 @@
             <div
               v-for="h in horariosOrdenados"
               :key="h.id"
-              style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;"
+              style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;"
             >
               <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; font-size: 14px;">
                 <span style="font-weight: 800; color: #0f172a;">{{ h.dia }}</span>
@@ -299,7 +311,17 @@
                 </span>
                 <span style="color: #475569;">🤝 {{ h.funcao }}</span>
               </div>
-              <button type="button" @click="removerHorario(h.id)" aria-label="Remover horário" :style="estiloBotaoRemover">
+              <!-- Visitante: botão de voluntariar (ainda sem ação, só avisa o App) -->
+              <button
+                v-if="somenteLeitura"
+                type="button"
+                @click="emit('voluntariar', { instituicaoId: instituicao.id, horario: h })"
+                style="padding: 8px 14px; background: #1d4ed8; color: white; font-size: 13px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer;"
+              >
+                Quero ser voluntário
+              </button>
+
+              <button v-if="!somenteLeitura" type="button" @click="removerHorario(h.id)" aria-label="Remover horário" :style="estiloBotaoRemover">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />
                 </svg>
@@ -307,7 +329,7 @@
             </div>
 
             <p v-if="!horariosOrdenados.length" style="margin: 0; font-size: 14px; color: #94a3b8;">
-              Nenhum horário cadastrado ainda.
+              {{ somenteLeitura ? 'Este abrigo ainda não cadastrou horários para voluntários.' : 'Nenhum horário cadastrado ainda.' }}
             </p>
           </div>
         </div>
@@ -322,10 +344,12 @@ import { ref, reactive, computed } from 'vue'
 import { calcularCorOcupacao } from '../data'
 
 const props = defineProps({
-  instituicao: { type: Object, required: true }
+  instituicao: { type: Object, required: true },
+  // true = visitante: só visualiza (sem editar, sem remover, sem sair)
+  somenteLeitura: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['close', 'atualizar', 'sair'])
+const emit = defineEmits(['close', 'atualizar', 'sair', 'voluntariar'])
 
 const aba = ref('perfil')
 const modoPerfil = ref('ver')
@@ -346,6 +370,13 @@ const estiloBotaoRemover = 'width: 38px; height: 38px; flex-shrink: 0; display: 
 
 function estiloAba(ativa) {
   return `padding: 10px 16px; font-size: 14px; font-weight: 700; border: none; border-radius: 10px 10px 0 0; cursor: pointer; background: ${ativa ? '#0891b2' : '#f1f5f9'}; color: ${ativa ? 'white' : '#475569'};`
+}
+
+// Único ponto que avisa o App para alterar dados do abrigo.
+// No modo somente leitura ele não faz nada, mesmo que algum botão fosse acionado.
+function atualizar(campos) {
+  if (props.somenteLeitura) return
+  emit('atualizar', campos)
 }
 
 function novoId() {
@@ -372,6 +403,7 @@ const form = reactive({
 })
 
 function iniciarEdicao() {
+  if (props.somenteLeitura) return
   const i = props.instituicao
   Object.assign(form, {
     nome: i.nome ?? '',
@@ -404,7 +436,7 @@ function salvarEdicao() {
     return
   }
 
-  emit('atualizar', {
+  atualizar({
     nome: form.nome.trim(),
     cnpj: form.cnpj.trim(),
     responsavel: form.responsavel.trim(),
@@ -429,7 +461,7 @@ function adicionarDoacao() {
   const item = novaDoacao.item.trim()
   if (!item) return
 
-  emit('atualizar', {
+  atualizar({
     doacoes: [
       ...doacoes.value,
       { id: novoId(), item, quantidade: novaDoacao.quantidade.trim(), urgente: novaDoacao.urgente }
@@ -441,7 +473,7 @@ function adicionarDoacao() {
 }
 
 function removerDoacao(id) {
-  emit('atualizar', { doacoes: doacoes.value.filter(d => d.id !== id) })
+  atualizar({ doacoes: doacoes.value.filter(d => d.id !== id) })
 }
 
 /* ---------- Voluntários ---------- */
@@ -465,7 +497,7 @@ function adicionarHorario() {
     return
   }
 
-  emit('atualizar', {
+  atualizar({
     horarios_voluntarios: [
       ...horarios.value,
       { id: novoId(), dia: novoHorario.dia, funcao, inicio: novoHorario.inicio, fim: novoHorario.fim }
@@ -475,6 +507,6 @@ function adicionarHorario() {
 }
 
 function removerHorario(id) {
-  emit('atualizar', { horarios_voluntarios: horarios.value.filter(h => h.id !== id) })
+  atualizar({ horarios_voluntarios: horarios.value.filter(h => h.id !== id) })
 }
 </script>

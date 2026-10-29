@@ -2,7 +2,6 @@
   <!-- Contêiner pai com posição relativa e 100vh fixo -->
   <div style="position: relative; width: 100vw; height: 100vh; overflow: hidden; font-family: sans-serif;">
 
-
     <!-- Modal de Entrada -->
     <RoleModal 
       v-if="exibirModalRole" 
@@ -13,7 +12,6 @@
       @submitInstituicao="cadastrarInstituicao" 
     />
 
-
     <!-- Modal do Gestor (Perfil / Doações / Voluntários) -->
     <ContaGestor
       v-if="exibirContaGestor && instituicaoGestor"
@@ -23,6 +21,13 @@
       @sair="sairGestor"
     />
 
+    <!-- Informações do abrigo (somente leitura, para qualquer visitante) -->
+    <ContaGestor
+      v-if="abrigoInfo"
+      :instituicao="abrigoInfo"
+      somente-leitura
+      @close="abrigoInfoId = null"
+    />
 
     <!-- Modal Minha Conta (Usuário / Voluntário) -->
     <ContaUsuario
@@ -34,7 +39,6 @@
       @salvar="salvarPerfil"
       @sair="sairDaConta"
     />
-
 
     <!-- 1. MAPA LEAFLET (Fundo em Tela Cheia) -->
     <l-map
@@ -59,10 +63,8 @@
         :max-native-zoom="16"
       />
 
-
       <!-- Botões de zoom no canto inferior direito -->
       <l-control-zoom position="bottomright" />
-
 
       <!-- Marcador da Localização do Usuário -->
       <l-marker
@@ -77,17 +79,17 @@
         </l-popup>
       </l-marker>
 
-
       <!-- Marcadores das Instituições no Mapa -->
       <l-marker
         v-for="item in instituicoesFiltradas"
         :key="item.id"
         :lat-lng="[item.localizacao.latitude, item.localizacao.longitude]"
         :icon="getIconeAbrigo(idSelecionado === item.id)"
+        :ref="el => registrarMarcador(item.id, el)"
         @click="selecionarInstituicao(item)"
       >
         <l-popup>
-          <div style="padding: 4px;">
+          <div style="padding: 4px; min-width: 190px;">
             <div style="font-weight: bold; color: #0f172a; font-size: 14px;">{{ item.nome }}</div>
             <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">{{ item.localizacao.endereco }}</div>
             <!-- // TODO: Alterar depois, para testes com backend, deixando assim: -->
@@ -101,19 +103,26 @@
               {{ item.vagas_totais - item.vagas_ocupadas }} vagas disponíveis
             </div>
 
-
             <div v-else style="font-size: 12px; color: #64748b;">
               Informações de vagas indisponíveis
             </div>
+
+            <button
+              @click.stop="abrirInfoAbrigo(item)"
+              style="display: block; width: 100%; margin-top: 10px; padding: 8px 0; background: #2563eb; color: white; font-size: 13px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer;"
+            >
+              Mais informações
+            </button>
           </div>
         </l-popup>
       </l-marker>
     </l-map>
 
+    <!-- CABEÇALHO (Sobre / O que é / Contato / Guia) -->
+    <Cabecalho />
 
     <!-- 2. PAINEL LATERAL ESQUERDO -->
-    <div style="position: absolute; top: 16px; left: 16px; z-index: 1000; width: 360px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 32px);">
-
+    <div style="position: absolute; top: 80px; left: 16px; z-index: 1000; width: 360px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 96px);">
 
       <!-- BARRA VERMELHA (Busca) -->
       <div style="display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; height: 52px; padding: 0 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); flex-shrink: 0;">
@@ -130,7 +139,6 @@
         />
       </div>
 
-
       <!-- BARRA AZUL (Definir minha localização) -->
       <button
         @click="obterLocalizacaoUsuario"
@@ -143,10 +151,8 @@
         Definir minha localização
       </button>
 
-
       <!-- ÁREA VERDE (Lista de abrigos) -->
       <div style="display: flex; flex-direction: column; flex: 1; min-height: 0; background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden;">
-
 
         <!-- Cabeçalho da Lista -->
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;">
@@ -157,7 +163,6 @@
             {{ instituicoesFiltradas.length }} resultados
           </span>
         </div>
-
 
         <!-- Conteúdo com Scroll -->
         <div style="flex: 1; overflow-y: auto;">
@@ -182,7 +187,6 @@
               {{ item.nome }}
             </div>
 
-
             <div
               style="font-size: 11px; font-weight: 700; margin-top: 2px;"
               :style="{ color: item.status === 'Aberto 24h' || !item.status ? '#059669' : '#d97706' }"
@@ -190,11 +194,9 @@
               {{ item.status || 'Aberto 24h' }}
             </div>
 
-
             <div style="font-size: 12px; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               {{ item.localizacao.endereco }}
             </div>
-
 
             <!-- Distância calculada pelo backend -->
             <div
@@ -203,7 +205,6 @@
             >
               {{ item.distanciaKm }} km de você
             </div>
-
 
             <!-- Barra de Vagas: aparece somente quando há dados disponíveis -->
             <div
@@ -221,7 +222,6 @@
                 />
               </div>
 
-
               <span
                 style="font-size: 11px; font-weight: 700; flex-shrink: 0;"
                 :style="{
@@ -232,7 +232,6 @@
               </span>
             </div>
 
-
             <div
               v-else
               style="margin-top: 10px; font-size: 11px; color: #64748b;"
@@ -240,7 +239,6 @@
               Vagas não informadas
             </div>
           </button>
-
 
           <div
             v-if="instituicoesFiltradas.length === 0"
@@ -253,8 +251,8 @@
       </div>
     </div>
 
-    <!-- 3. BOTÃO ENTRAR (Flutuando no canto superior direito) -->
-    <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
+    <!-- 3. BOTÃO ENTRAR (Flutuando no canto superior direito, dentro da faixa do cabeçalho) -->
+    <div style="position: absolute; top: 0; right: 16px; height: 64px; display: flex; align-items: center; z-index: 1001;">
       <!-- Conta salva: abre as informações do perfil -->
       <button
         v-if="perfilUsuario"
@@ -268,7 +266,6 @@
           {{ perfilUsuario.nome }}
         </span>
       </button>
-
 
       <!-- Gestor logado: abre o painel do abrigo -->
       <button
@@ -284,7 +281,6 @@
         </span>
       </button>
 
-
       <!-- Sem conta: botão Entrar -->
       <button
         v-else
@@ -295,10 +291,8 @@
       </button>
     </div>
 
-
   </div>
 </template>
-
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
@@ -306,12 +300,11 @@ import { LMap, LTileLayer, LMarker, LPopup, LControlZoom } from '@vue-leaflet/vu
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-
 import RoleModal from './components/RoleModal.vue'
 import ContaUsuario from './components/ContaUsuario.vue'
 import ContaGestor from './components/ContaGestor.vue'
+import Cabecalho from './components/Cabecalho.vue'
 import { atualizarPerfil } from './auth'
-
 
 // Teste de conexão entre front -> bff -> backend para solicitar lista de abrigos e construir mapa:
 import { 
@@ -322,7 +315,6 @@ import {
   buscarInstituicoesProximas
 } from './services/instituicoesApi.js'
 
-
 const exibirModalRole = ref(false)
 const exibirMinhaConta = ref(false)
 const perfilUsuario = ref(null)
@@ -330,6 +322,8 @@ const contaUsuarioId = ref(null)
 const exibirContaGestor = ref(false)
 const contaGestorId = ref(null)
 const instituicaoGestorId = ref(null)
+const abrigoInfoId = ref(null)
+const marcadores = {} // guarda os marcadores do mapa por id (para abrir o popup)
 const pesquisasRecentes = ref([])
 const abrigosVisitados = ref([])
 const instituicoes = ref(INSTITUICOES_INIT)
@@ -339,22 +333,18 @@ const centroMapa = ref([-23.5475, -46.6361])
 const localizacaoUsuario = ref(null)
 const mapaRef = ref(null)
 
-
 const limitesSP = ref([
   [-24.1000, -47.1000],
   [-23.1000, -45.7000]
 ])
-
 
 onMounted(async() => {
   try {
     // Solicita ao serviço os abrigos disponibilizados pelo BFF:
     const dados = await buscarInstituicoes()
 
-
     // Atualiza a lista reattiva usada pelo mapa e pela busca
     instituicoes.value = dados
-
 
     console.log('Abrigos carregados do BFF:', dados)
   } catch(erro) {
@@ -363,7 +353,6 @@ onMounted(async() => {
     instituicoes.value = [...INSTITUICOES_INIT]
   }
 })
-
 
 const instituicoesFiltradas = computed(() => {
   const q = termoBusca.value.toLowerCase().trim()
@@ -374,12 +363,15 @@ const instituicoesFiltradas = computed(() => {
   )
 })
 
-
 // Abrigo do gestor que está logado (null se não houver)
 const instituicaoGestor = computed(
   () => instituicoes.value.find(i => i.id === instituicaoGestorId.value) ?? null
 )
 
+// Abrigo cuja tela de informações (somente leitura) está aberta
+const abrigoInfo = computed(
+  () => instituicoes.value.find(i => i.id === abrigoInfoId.value) ?? null
+)
 
 function getIconeAbrigo(selecionado) {
   const size = selecionado ? 44 : 36
@@ -395,7 +387,6 @@ function getIconeAbrigo(selecionado) {
   })
 }
 
-
 function getIconeUsuario() {
   return L.divIcon({
     html: `<svg width="32" height="32" viewBox="0 0 32 32">
@@ -409,7 +400,6 @@ function getIconeUsuario() {
   })
 }
 
-
 function mapaPronto(map) {
   mapaRef.value = map
   nextTick(() => {
@@ -419,13 +409,36 @@ function mapaPronto(map) {
   })
 }
 
-
 function selecionarInstituicao(item) {
   idSelecionado.value = item.id
   registrarAbrigoVisitado(item)
-  mapaRef.value?.flyTo([item.localizacao.latitude, item.localizacao.longitude], 16, { duration: 0.8 })
+
+  const mapa = mapaRef.value
+  if (!mapa) return
+
+  // Abre o popup do marcador quando o mapa terminar de se mover
+  let aberto = false
+  const abrirPopup = () => {
+    if (aberto) return
+    aberto = true
+    marcadores[item.id]?.leafletObject?.openPopup()
+  }
+
+  mapa.once('moveend', abrirPopup)
+  mapa.flyTo([item.localizacao.latitude, item.localizacao.longitude], 16, { duration: 0.8 })
+  setTimeout(abrirPopup, 1200) // garantia, caso o mapa já estivesse no ponto
 }
 
+function registrarMarcador(id, el) {
+  if (el) marcadores[id] = el
+  else delete marcadores[id]
+}
+
+// Botão "Mais informações" do popup
+function abrirInfoAbrigo(item) {
+  mapaRef.value?.closePopup()
+  abrigoInfoId.value = item.id
+}
 
 async function obterLocalizacaoUsuario() {
   if (!navigator.geolocation) {
@@ -433,27 +446,22 @@ async function obterLocalizacaoUsuario() {
     return
   }
 
-
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       const coords = [pos.coords.latitude, pos.coords.longitude]
 
-
       localizacaoUsuario.value = coords
       mapaRef.value?.flyTo(coords, 16, { duration: 0.8 })
 
-
       try {
         // Pede ao BFF os a brigos ordenados por proximidade
-        const abrigosProximos = await buscarInstituicoes(
+        const abrigosProximos = await buscarInstituicoesProximas(
           coords[0],
           coords[1]
         )
 
-
         // Reaproveita a mesma lista usada pelo mapa e pelo painel lateral
         instituicoes.value = abrigosProximos
-
 
         console.log('Abrigos ordenados por proximidade: ', abrigosProximos)
       } catch (erro) {
@@ -464,17 +472,14 @@ async function obterLocalizacaoUsuario() {
     async () => {
       const coordsPadrao = [-23.5458, -46.6521] // Localização da faculdade
 
-
       localizacaoUsuario.value = coordsPadrao
       mapaRef.value?.flyTo(coordsPadrao, 16, { duration: 0.8 })
-
 
       try {
         const abrigosProximos = await buscarInstituicoesProximas(
           coordsPadrao[0],
           coordsPadrao[1]
         )
-
 
         instituicoes.value = abrigosProximos
       } catch (erro) {
@@ -483,7 +488,6 @@ async function obterLocalizacaoUsuario() {
     }
   )
 }
-
 
 function definirPapel(role) {
   exibirModalRole.value = false
@@ -494,19 +498,16 @@ function definirPapel(role) {
   alert(`Papel selecionado: ${role}`)
 }
 
-
 function salvarPerfil(dados) {
   perfilUsuario.value = dados
   if (contaUsuarioId.value !== null) atualizarPerfil(contaUsuarioId.value, dados)
 }
-
 
 function sairDaConta() {
   perfilUsuario.value = null
   contaUsuarioId.value = null
   exibirMinhaConta.value = false
 }
-
 
 // Chamado quando o usuário faz login (novo = false) ou cria a conta (novo = true)
 function usuarioAutenticado({ id, perfil, novo }) {
@@ -516,14 +517,12 @@ function usuarioAutenticado({ id, perfil, novo }) {
   if (novo) exibirMinhaConta.value = true
 }
 
-
 // Chamado quando o gestor faz login
 function gestorAutenticado({ id, instituicaoId }) {
   contaGestorId.value = id
   instituicaoGestorId.value = instituicaoId
   exibirModalRole.value = false
 }
-
 
 // Atualiza qualquer campo do abrigo (perfil, doações, horários de voluntários)
 function atualizarInstituicao(id, campos) {
@@ -537,13 +536,11 @@ function atualizarInstituicao(id, campos) {
   }
 }
 
-
 function sairGestor() {
   contaGestorId.value = null
   instituicaoGestorId.value = null
   exibirContaGestor.value = false
 }
-
 
 function registrarPesquisa() {
   const termo = termoBusca.value.trim()
@@ -555,7 +552,6 @@ function registrarPesquisa() {
   ].slice(0, 5)
 }
 
-
 function registrarAbrigoVisitado(item) {
   // Remove repetidos, coloca o mais recente no topo e guarda no máximo 5
   abrigosVisitados.value = [
@@ -564,11 +560,9 @@ function registrarAbrigoVisitado(item) {
   ].slice(0, 5)
 }
 
-
 function horaAtual() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
-
 
 function cadastrarInstituicao(dados, contaId) {
   const novoId = Date.now()
@@ -580,7 +574,6 @@ function cadastrarInstituicao(dados, contaId) {
     doacoes: [],
     horarios_voluntarios: []
   })
-
 
   // Liga a conta do gestor ao abrigo recém-criado e abre o painel dele
   atualizarPerfil(contaId, { instituicaoId: novoId })
