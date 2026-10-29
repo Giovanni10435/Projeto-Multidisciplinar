@@ -445,7 +445,7 @@ async function obterLocalizacaoUsuario() {
 
       try {
         // Pede ao BFF os a brigos ordenados por proximidade
-        const abrigosProximos = await buscarInstituicoes(
+        const abrigosProximos = await buscarInstituicoesProximas(
           coords[0],
           coords[1]
         )
