@@ -57,8 +57,11 @@ public class AbrigoController {
 
     // UC03: Listar abrigos no mapa
     @GetMapping("/api/local/abrigos")
-    public Mono<Object> listarAbrigosMapa() {
-        return abrigoService.listarAbrigosMapa();
+    public Mono<Object> listarAbrigosMapa(
+        @RequestParam(required = false) Double lat,
+        @RequestParam(required = false) Double lng
+    ) {
+        return abrigoService.listarAbrigosMapa(lat, lng);
     }
 
     // UC11: Listar solicitações (doações + voluntariados) de uma instituição

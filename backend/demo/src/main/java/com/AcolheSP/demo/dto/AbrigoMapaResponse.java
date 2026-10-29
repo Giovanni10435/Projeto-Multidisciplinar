@@ -11,5 +11,6 @@ public record AbrigoMapaResponse(
         BigDecimal longitude,
         String statusVerificacao,
         long necessidadesAbertas,
-        Double distanciaKm) {
+        Double distanciaKm
+) {
 }

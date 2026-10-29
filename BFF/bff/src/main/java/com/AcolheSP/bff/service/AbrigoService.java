@@ -69,11 +69,16 @@ public class AbrigoService {
             .bodyToMono(Object.class);
     }
 
-    // UC03: Listar abrigos no mapa
-    public Mono<Object> listarAbrigosMapa() {
+    // UC03: Listar abrigos no mapa, ordenados por proximidade quando lat/lng forem enviados
+    public Mono<Object> listarAbrigosMapa(Double lat, Double lng) {
         return backendWebClient
             .get()
-            .uri("/api/local/abrigos")
+            .uri(builder -> builder
+                .path("/api/local/abrigos")
+                .queryParamIfPresent("lat", Optional.ofNullable(lat))
+                .queryParamIfPresent("lng", Optional.ofNullable(lng))
+                .build()
+            )
             .retrieve()
             .bodyToMono(Object.class);
     }

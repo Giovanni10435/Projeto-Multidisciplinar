@@ -1,70 +1,125 @@
 package com.AcolheSP.demo.controller;
 
-import static org.mockito.Mockito.when;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.AcolheSP.demo.dto.AbrigoMapaResponse;
-import com.AcolheSP.demo.service.MapaService;
 
-@ExtendWith(MockitoExtension.class)
+import com.AcolheSP.demo.dto.AbrigoRequest;
+import com.AcolheSP.demo.dto.AbrigoResponse;
+import com.AcolheSP.demo.service.AbrigoService;
+
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
 class MapaControllerTest {
 
-    @Mock
-    private MapaService mapaService;
 
+    @Autowired
     private MockMvc mvc;
 
-    @BeforeEach
-    void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new MapaController(mapaService)).build();
+
+    @Autowired
+    private AbrigoService abrigoService;
+
+
+    private static String token() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private AbrigoMapaResponse abrigo(Double distancia) {
-        return new AbrigoMapaResponse(1, "Casa Luz", "Rua A, 10",
-                BigDecimal.valueOf(-23.55), BigDecimal.valueOf(-46.63), "PENDENTE", 2L, distancia);
+
+    private static String emailUnico(String prefixo) {
+        return prefixo + "." + UUID.randomUUID() + "@exemplo.com";
     }
+
+
+    // Praça da Sé (SP) e Campinas
+    private static final String SP_LAT = "-23.5505";
+    private static final String SP_LNG = "-46.6333";
+    private static final String CAMP_LAT = "-22.9099";
+    private static final String CAMP_LNG = "-47.0626";
+
+
+    private AbrigoResponse criarAbrigoNoMapa(String nome, String lat, String lng) {
+        return abrigoService.cadastrarAbrigo(new AbrigoRequest(
+                emailUnico("abrigo"),
+                nome,
+                null,
+                null,
+                null,
+                null,
+                "Rua " + nome,
+                null,
+                new BigDecimal(lat),
+                new BigDecimal(lng)
+        ));
+    }
+
 
     @Test
-    void deveRepassarLatELngDoUsuario() throws Exception {
-        when(mapaService.listarParaMapa(-23.55, -46.63)).thenReturn(List.of(abrigo(1.5)));
+    void semParametrosDeveListarAbrigosSemDistancia() throws Exception {
+        String t = token();
 
-        mvc.perform(get("/api/local/abrigos").param("lat", "-23.55").param("lng", "-46.63"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nome").value("Casa Luz"))
-                .andExpect(jsonPath("$[0].necessidadesAbertas").value(2))
-                .andExpect(jsonPath("$[0].distanciaKm").value(1.5));
-    }
 
-    @Test
-    void semParametrosDeveChamarComNulos() throws Exception {
-        when(mapaService.listarParaMapa(null, null)).thenReturn(List.of(abrigo(null)));
+        criarAbrigoNoMapa("Controller Beta " + t, SP_LAT, SP_LNG);
+        criarAbrigoNoMapa("Controller Alfa " + t, SP_LAT, SP_LNG);
+
 
         mvc.perform(get("/api/local/abrigos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].distanciaKm").doesNotExist());
+                .andExpect(jsonPath("$[?(@.nome == 'Controller Alfa " + t + "')].distanciaKm")
+                        .value(org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.nullValue())))
+                .andExpect(jsonPath("$[?(@.nome == 'Controller Beta " + t + "')].distanciaKm")
+                        .value(org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.nullValue())));
     }
 
-    @Test
-    void deveRetornar400QuandoServiceRejeitarCoordenadas() throws Exception {
-        when(mapaService.listarParaMapa(-23.55, null))
-                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Envie lat e lng juntas"));
 
-        mvc.perform(get("/api/local/abrigos").param("lat", "-23.55"))
+    @Test
+    void comCoordenadasDeveRetornarAbrigosOrdenadosPorProximidade() throws Exception {
+        String t = token();
+
+
+        criarAbrigoNoMapa("Controller Longe " + t, CAMP_LAT, CAMP_LNG);
+        criarAbrigoNoMapa("Controller Perto " + t, SP_LAT, SP_LNG);
+
+
+        mvc.perform(get("/api/local/abrigos")
+                        .param("lat", SP_LAT)
+                        .param("lng", SP_LNG))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.nome == 'Controller Perto " + t + "')].distanciaKm")
+                        .value(org.hamcrest.Matchers.hasItem(0.0)))
+                .andExpect(jsonPath("$[?(@.nome == 'Controller Longe " + t + "')].distanciaKm")
+                        .value(org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.greaterThan(80.0))));
+    }
+
+
+    @Test
+    void deveRetornar400QuandoEnviarLatSemLng() throws Exception {
+        mvc.perform(get("/api/local/abrigos")
+                        .param("lat", SP_LAT))
+                .andExpect(status().isBadRequest());
+    }
+
+
+    @Test
+    void deveRetornar400QuandoEnviarLngSemLat() throws Exception {
+        mvc.perform(get("/api/local/abrigos")
+                        .param("lng", SP_LNG))
                 .andExpect(status().isBadRequest());
     }
 }

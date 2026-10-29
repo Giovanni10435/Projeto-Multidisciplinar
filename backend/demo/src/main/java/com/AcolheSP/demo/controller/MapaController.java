@@ -23,6 +23,8 @@ public class MapaController {
     public List<AbrigoMapaResponse> listarParaMapa(
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng) {
+        // O serviço valida se lat/lng foram enviados juntos e se
+        // estão dentro dos intervalos válidos
         return mapaService.listarParaMapa(lat, lng);
     }
 }

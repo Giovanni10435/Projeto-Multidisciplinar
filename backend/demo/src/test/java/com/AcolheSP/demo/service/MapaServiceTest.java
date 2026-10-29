@@ -169,16 +169,4 @@ class MapaServiceTest {
         assertEquals("Longe " + t, meus.get(1).nome());
         assertTrue(meus.get(1).distanciaKm() > 80 && meus.get(1).distanciaKm() < 95);
     }
-
-    @Test
-    void haversineDeveCalcularDistanciaEntreSaoPauloERio() {
-        double km = MapaService.haversineKm(-23.5505, -46.6333, -22.9068, -43.1729);
-
-        assertEquals(357.0, km, 5.0);
-    }
-
-    @Test
-    void haversineDeveRetornarZeroParaOMesmoPonto() {
-        assertEquals(0.0, MapaService.haversineKm(-23.55, -46.63, -23.55, -46.63), 0.0001);
-    }
 }

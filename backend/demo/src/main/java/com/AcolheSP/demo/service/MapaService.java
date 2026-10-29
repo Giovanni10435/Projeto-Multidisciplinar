@@ -1,5 +1,6 @@
 package com.AcolheSP.demo.service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -13,12 +14,10 @@ import com.AcolheSP.demo.model.Instituicao;
 import com.AcolheSP.demo.model.StatusNecessidade;
 import com.AcolheSP.demo.repository.InstituicaoRepository;
 import com.AcolheSP.demo.repository.NecessidadeRepository;
+import com.AcolheSP.demo.utils.TGrafo;
 
 @Service
 public class MapaService {
-
-    private static final double RAIO_TERRA_KM = 6371.0;
-
     private final InstituicaoRepository instituicaoRepo;
     private final NecessidadeRepository necessidadeRepo;
 
@@ -27,52 +26,135 @@ public class MapaService {
         this.necessidadeRepo = necessidadeRepo;
     }
 
-    // UC03 - Abrigos para o mapa. Sem lat/lng: ordem alfabética.
-    // Com lat/lng do usuário: ordenados do mais perto pro mais longe (RF08).
+    // UC03 - Abrigos para o mapa. 
+    // Sem lat/lng: ordem alfabética.
+    // Com lat/lng do usuário: monta grafo com usuário + abrigos e ordena por Dijkstra.
     @Transactional(readOnly = true)
     public List<AbrigoMapaResponse> listarParaMapa(Double lat, Double lng) {
         if ((lat == null) != (lng == null)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Envie lat e lng juntas");
         }
+
         if (lat != null && (lat < -90 || lat > 90 || lng < -180 || lng > 180)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lat/lng fora do intervalo válido");
         }
 
-        List<AbrigoMapaResponse> lista = instituicaoRepo.findAll().stream()
+        List<Instituicao> instituicoes = instituicaoRepo.findAll().stream()
                 .filter(i -> i.getLocalizacao() != null)
-                .map(i -> montar(i, lat, lng))
                 .toList();
 
-        Comparator<AbrigoMapaResponse> ordem = (lat == null)
-                ? Comparator.comparing(AbrigoMapaResponse::nome, String.CASE_INSENSITIVE_ORDER)
-                : Comparator.comparing(AbrigoMapaResponse::distanciaKm);
-
-        return lista.stream().sorted(ordem).toList();
-    }
-
-    private AbrigoMapaResponse montar(Instituicao i, Double lat, Double lng) {
-        var loc = i.getLocalizacao();
-        Double distancia = null;
-        if (lat != null) {
-            distancia = arredondar(haversineKm(lat, lng,
-                    loc.getLatitude().doubleValue(), loc.getLongitude().doubleValue()));
+        if (lat == null) {
+            return instituicoes.stream()
+                    .map(i -> montarSemDistancia(i))
+                    .sorted(Comparator.comparing(
+                            AbrigoMapaResponse::nome,
+                            String.CASE_INSENSITIVE_ORDER
+                    ))
+                    .toList();
         }
-        return new AbrigoMapaResponse(
-                i.getId(), i.getNome(), loc.getEndereco(),
-                loc.getLatitude(), loc.getLongitude(),
-                i.getStatusVerificacao().name(),
-                necessidadeRepo.countByInstituicaoIdAndStatus(i.getId(), StatusNecessidade.ABERTA),
-                distancia);
+        return calcularPorGrafo(instituicoes, lat, lng);
     }
 
-    // Distância em linha reta entre dois pontos (km)
-    static double haversineKm(double lat1, double lon1, double lat2, double lon2) {
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return RAIO_TERRA_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    private List<AbrigoMapaResponse> calcularPorGrafo(
+            List<Instituicao> instituicoes,
+            double latUsuario,
+            double lngUsuario
+    ) {
+        // Vértice 0 será sempre o usuário
+        TGrafo grafo = new TGrafo(1);
+
+        grafo.insereV(
+                latUsuario + " " + lngUsuario,
+                "Usuário"
+        );
+
+        List<Integer> indicesAbrigos = new ArrayList<>();
+
+        for (Instituicao instituicao : instituicoes) {
+            var loc = instituicao.getLocalizacao();
+
+            int indice = grafo.insereV(
+                    loc.getLatitude().doubleValue() + " "
+                            + loc.getLongitude().doubleValue(),
+                    instituicao.getNome()
+            );
+
+            indicesAbrigos.add(indice);
+        }
+
+        double[] distancias = grafo.dijkstra(0);
+
+        List<AbrigoMapaResponse> resposta = new ArrayList<>();
+
+        for (int i = 0; i < instituicoes.size(); i++) {
+            Instituicao instituicao = instituicoes.get(i);
+            int indiceAbrigo = indicesAbrigos.get(i);
+
+            double distancia = distancias[indiceAbrigo];
+            var loc = instituicao.getLocalizacao();
+
+            // Fallback: abrigo isolado no grafo recebe a distância reta
+            if (distancia == Double.MAX_VALUE) {
+                distancia = grafo.calcularDistanciaKm(
+                        latUsuario,
+                        lngUsuario,
+                        loc.getLatitude().doubleValue(),
+                        loc.getLongitude().doubleValue()
+                );
+            }
+
+            resposta.add(montarComDistancia(
+                    instituicao,
+                    loc.getLatitude(),
+                    loc.getLongitude(),
+                    arredondar(distancia)
+            ));
+        }
+
+        return resposta.stream()
+                .sorted(Comparator.comparing(AbrigoMapaResponse::distanciaKm))
+                .toList();
+    }
+
+    private AbrigoMapaResponse montarSemDistancia(Instituicao i) {
+        var loc = i.getLocalizacao();
+
+        return new AbrigoMapaResponse(
+            i.getId(),
+            i.getNome(),
+            loc.getEndereco(),
+            loc.getLatitude(),
+            loc.getLongitude(),
+            i.getStatusVerificacao().name(),
+            necessidadeRepo.countByInstituicaoIdAndStatus(
+                i.getId(),
+                StatusNecessidade.ABERTA
+            ),
+            null
+        );
+    }
+
+    private AbrigoMapaResponse montarComDistancia(
+        Instituicao i,
+        java.math.BigDecimal latitude,
+        java.math.BigDecimal longitude,
+        double distancia
+    ) {
+        var loc = i.getLocalizacao();
+
+        return new AbrigoMapaResponse(
+                i.getId(),
+                i.getNome(),
+                loc.getEndereco(),
+                latitude,
+                longitude,
+                i.getStatusVerificacao().name(),
+                necessidadeRepo.countByInstituicaoIdAndStatus(
+                        i.getId(),
+                        StatusNecessidade.ABERTA
+                ),
+                distancia
+        );
     }
 
     private static double arredondar(double v) {
