@@ -7,11 +7,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class WebClientConfig {
+
+    @Value("${backend.url:http://localhost:8080}")
+    private String backendUrl;
     
     @Bean
-    public WebClient backendWebClient(
-        @Value("${backend.url}") String backendUrl) {
-
-            return WebClient.builder().baseUrl(backendUrl).build();
+    public WebClient backendWebClient() {
+            return WebClient.builder()
+                .baseUrl(backendUrl)
+                .build();
         }
 }

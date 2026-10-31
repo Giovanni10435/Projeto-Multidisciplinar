@@ -119,7 +119,7 @@
     </l-map>
 
     <!-- CABEÇALHO (Sobre / O que é / Contato / Guia) -->
-    <Cabecalho />
+    <Cabecalho/>
 
     <!-- 2. PAINEL LATERAL ESQUERDO -->
     <div style="position: absolute; top: 80px; left: 16px; z-index: 1000; width: 360px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 96px);">

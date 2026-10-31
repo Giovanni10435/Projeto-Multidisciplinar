@@ -91,6 +91,13 @@
             Cadastrar
           </button>
         </div>
+        <p
+          v-if="sucesso"
+          role="status"
+          style="margin: 0 0 16px; padding: 10px 12px; font-size: 13px; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;"
+        >
+          {{ sucesso }}
+        </p>
 
         <!-- ----- ENTRAR (já tenho conta) ----- -->
         <form v-if="modo === 'entrar'" @submit.prevent="entrar" style="display: flex; flex-direction: column; gap: 12px;">
@@ -109,7 +116,13 @@
 
           <p v-if="erro" :style="estiloErro">{{ erro }}</p>
 
-          <button type="submit" :style="estiloBotaoPrincipal">Entrar</button>
+          <button
+            type="submit"
+            :disabled="entrando"
+            :style="estiloBotaoPrincipal"
+          >
+            {{ entrando ? 'Entrando...' : 'Entrar' }}
+          </button>
         </form>
 
         <!-- ----- CADASTRAR: USUÁRIO ----- -->
@@ -137,7 +150,13 @@
 
           <p v-if="erro" :style="estiloErro">{{ erro }}</p>
 
-          <button type="submit" :style="estiloBotaoPrincipal">Criar conta</button>
+          <button
+            type="submit"
+            :disabled="cadastrando"
+            :style="estiloBotaoPrincipal"
+          >
+            {{ cadastrando ? 'Criando conta...' : 'Criar conta' }}
+          </button>
         </form>
 
         <!-- ----- CADASTRAR: ABRIGO / GESTOR ----- -->
@@ -194,12 +213,16 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { cadastrarConta, entrarNaConta } from '../auth'
+import { cadastrarVoluntario, loginVoluntario } from '../services/voluntarioApi'
 
 const emit = defineEmits(['select', 'submitInstituicao', 'usuarioAutenticado', 'gestorAutenticado', 'close'])
 
 const perfilEscolhido = ref(null) // null | 'usuario' | 'gestor'
 const modo = ref('entrar')        // 'entrar' | 'cadastrar'
 const erro = ref('')
+const sucesso = ref('')
+const cadastrando = ref(false)
+const entrando = ref(false)
 
 const loginForm = reactive({ email: '', senha: '' })
 const cadastroUsuario = reactive({ nome: '', email: '', senha: '' })
@@ -234,69 +257,189 @@ function estiloTab(ativa) {
 }
 
 function escolherPerfil(perfil) {
+  if (entrando.value || cadastrando.value) return
+
   perfilEscolhido.value = perfil
   modo.value = 'entrar'
   erro.value = ''
+  sucesso.value = ''
 }
 
 function voltar() {
+  if (entrando.value || cadastrando.value) return
+
   perfilEscolhido.value = null
   erro.value = ''
+  sucesso.value = ''
 }
 
 function trocarModo(novoModo) {
+  if (entrando.value || cadastrando.value) return
+
   modo.value = novoModo
   erro.value = ''
+  sucesso.value = ''
 }
 
-// ----- Entrar (já tenho conta) -----
-function entrar() {
+// ----- Entrar (já tenho conta) no frontend -----
+// function entrar() {
+//   erro.value = ''
+//   const resultado = entrarNaConta({
+//     tipo: perfilEscolhido.value,
+//     email: loginForm.email,
+//     senha: loginForm.senha
+//   })
+
+//   if (!resultado.ok) {
+//     erro.value = resultado.erro
+//     return
+//   }
+
+//   if (perfilEscolhido.value === 'usuario') {
+//     emit('usuarioAutenticado', { id: resultado.conta.id, perfil: resultado.conta.perfil, novo: false })
+//   } else {
+//     const instituicaoId = resultado.conta.perfil?.instituicaoId
+//     if (!instituicaoId) {
+//       erro.value = 'Não encontramos o abrigo ligado a esta conta.'
+//       return
+//     }
+//     emit('gestorAutenticado', { id: resultado.conta.id, instituicaoId })
+//   }
+// }
+
+// ----- Entrar (já tenho conta) no BFF -----
+async function entrar() {
+  if (entrando.value) return
+
   erro.value = ''
-  const resultado = entrarNaConta({
-    tipo: perfilEscolhido.value,
-    email: loginForm.email,
-    senha: loginForm.senha
-  })
+  sucesso.value = ''
+  entrando.value = true
 
-  if (!resultado.ok) {
-    erro.value = resultado.erro
-    return
-  }
+  try {
+    // Usuário / Voluntário: autenticação pelo BFF.
+    if (perfilEscolhido.value === 'usuario') {
+      const resultado = await loginVoluntario({
+        email: loginForm.email.trim(),
+        senha: loginForm.senha
+      })
 
-  if (perfilEscolhido.value === 'usuario') {
-    emit('usuarioAutenticado', { id: resultado.conta.id, perfil: resultado.conta.perfil, novo: false })
-  } else {
+      if (resultado.role !== 'usuario') {
+        erro.value = 'Esta conta não é de usuário/voluntário.'
+        return
+      }
+
+      loginForm.senha = ''
+
+      emit('usuarioAutenticado', {
+        id: resultado.id,
+        perfil: {
+          nome: resultado.nome,
+          email: resultado.email
+        },
+        novo: false
+      })
+
+      return
+    }
+
+    // Gestor: mantém o fluxo anterior por enquanto.
+    const resultado = entrarNaConta({
+      tipo: perfilEscolhido.value,
+      email: loginForm.email,
+      senha: loginForm.senha
+    })
+
+    if (!resultado.ok) {
+      erro.value = resultado.erro
+      return
+    }
+
     const instituicaoId = resultado.conta.perfil?.instituicaoId
+
     if (!instituicaoId) {
       erro.value = 'Não encontramos o abrigo ligado a esta conta.'
       return
     }
-    emit('gestorAutenticado', { id: resultado.conta.id, instituicaoId })
+
+    loginForm.senha = ''
+
+    emit('gestorAutenticado', {
+      id: resultado.conta.id,
+      instituicaoId
+    })
+  } catch (e) {
+    erro.value = e instanceof TypeError
+      ? 'Não foi possível conectar ao serviço de login. Confira o console do navegador.'
+      : e.message || 'Não foi possível realizar o login.'
+  } finally {
+    entrando.value = false
   }
 }
 
-// ----- Cadastrar usuário -----
-function cadastrarUsuario() {
+// ----- Cadastrar usuário no frontend -----
+// function cadastrarUsuario() {
+//   erro.value = ''
+//   if (cadastroUsuario.senha.length < 6) {
+//     erro.value = 'A senha precisa ter pelo menos 6 caracteres.'
+//     return
+//   }
+
+//   const email = cadastroUsuario.email.trim()
+//   const resultado = cadastrarConta({
+//     tipo: 'usuario',
+//     email,
+//     senha: cadastroUsuario.senha,
+//     perfil: { nome: cadastroUsuario.nome.trim(), idade: '', telefone: '', email, cpf: '' }
+//   })
+
+//   if (!resultado.ok) {
+//     erro.value = resultado.erro
+//     return
+//   }
+
+//   emit('usuarioAutenticado', { id: resultado.conta.id, perfil: resultado.conta.perfil, novo: true })
+// }
+
+// ----- Cadastrar usuário pelo BFF -----
+async function cadastrarUsuario() {
+  if (cadastrando.value) return
+
   erro.value = ''
+  sucesso.value = ''
+
   if (cadastroUsuario.senha.length < 6) {
     erro.value = 'A senha precisa ter pelo menos 6 caracteres.'
     return
   }
 
-  const email = cadastroUsuario.email.trim()
-  const resultado = cadastrarConta({
-    tipo: 'usuario',
-    email,
-    senha: cadastroUsuario.senha,
-    perfil: { nome: cadastroUsuario.nome.trim(), idade: '', telefone: '', email, cpf: '' }
-  })
+  cadastrando.value = true
 
-  if (!resultado.ok) {
-    erro.value = resultado.erro
-    return
+  try {
+    await cadastrarVoluntario({
+      nome: cadastroUsuario.nome.trim(),
+      email: cadastroUsuario.email.trim(),
+      senha: cadastroUsuario.senha,
+      telefone: null,
+      disponibilidade: null
+    })
+
+    // Preenche o email para o usuário entrar depois.
+    loginForm.email = cadastroUsuario.email.trim()
+    loginForm.senha = ''
+
+    cadastroUsuario.nome = ''
+    cadastroUsuario.email = ''
+    cadastroUsuario.senha = ''
+
+    modo.value = 'entrar'
+    sucesso.value = 'Conta criada com sucesso! Entre com seu e-mail e senha.'
+  } catch (e) {
+    erro.value = e instanceof TypeError
+      ? 'Não foi possível conectar ao BFF. Verifique a conexão e o console do navegador.'
+      : e.message || 'Não foi possível realizar o cadastro.'
+  } finally {
+    cadastrando.value = false
   }
-
-  emit('usuarioAutenticado', { id: resultado.conta.id, perfil: resultado.conta.perfil, novo: true })
 }
 
 // ----- Cadastrar abrigo / gestor -----

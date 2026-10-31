@@ -51,7 +51,7 @@
           {{ paragrafo }}
         </p>
         <p v-if="!secaoAberta.conteudo.length" style="margin: 0; color: #94a3b8;">
-          Conteúdo em breve.
+          Nenhuma informação disponível.
         </p>
       </div>
     </div>
@@ -63,10 +63,50 @@ import { ref, computed } from 'vue'
 
 // Para preencher depois: cada texto da lista "conteudo" vira um parágrafo na janela.
 const secoes = [
-  { id: 'sobre',   icone: '📖', titulo: 'Sobre o Projeto?',       conteudo: [] },
-  { id: 'o-que-e', icone: '🏡', titulo: 'O que é o AcolheSP?',    conteudo: [] },
-  { id: 'contato', icone: '✉️', titulo: 'Informações de Contato', conteudo: [] },
-  { id: 'guia',    icone: '🧭', titulo: 'Guia para Navegação',    conteudo: [] }
+  {
+    id: 'sobre',
+    icone: '📖',
+    titulo: 'Sobre o Projeto',
+    conteudo: [
+      'O AcolheSP é um projeto acadêmico desenvolvido por estudantes.',
+      'Seu objetivo é facilitar o acesso a informações sobre instituições de acolhimento e assistência social.',
+      'O projeto busca utilizar a tecnologia para contribuir com pessoas em situação de vulnerabilidade.'
+    ]
+  },
+  {
+    id: 'o-que-e',
+    icone: '🏡',
+    titulo: 'O que é o AcolheSP?',
+    conteudo: [
+      'O AcolheSP é uma plataforma que permite localizar instituições de assistência social.',
+      'Por meio de um mapa interativo, o usuário pode visualizar abrigos e outros pontos de apoio.',
+      'A plataforma também permite identificar instituições próximas de uma determinada localização e listar estas instituições de mais próximo até mais distante.'
+    ]
+  },
+  {
+    id: 'contato',
+    icone: '✉️',
+    titulo: 'Informações de Contato',
+    conteudo: [
+      'Para obter mais informações sobre o projeto, entre em contato com nossa equipe.',
+      'Redes sociais:',
+      'Github: https://github.com/JoaoVitorMintz, Linkedin: https://www.linkedin.com/in/joaomintz/',
+      'Projeto acadêmico desenvolvido na Universidade Presbiteriana Mackenzie.'
+    ]
+  },
+  {
+    id: 'guia',
+    icone: '🧭',
+    titulo: 'Guia para Navegação',
+    conteudo: [
+      '1. Acesse o mapa principal da plataforma.',
+      '2. Visualize as instituições disponíveis.',
+      '3. Clique em um marcador para consultar informações sobre a instituição.',
+      '4. Utilize o mapa para encontrar pontos de assistência próximos.',
+      '5. Caso queira se candidatar a voluntariado, realize login com uma conta voluntário, selecione o abrigo e se atribua como voluntário nas datas disponíveis pelo abrigo',
+      '6. Caso queira se candidatar a abrigo, realize login com uma conta abrigo e altere disponibilidade de voluntariado ou necessidades do abrigo.'
+    ]
+  }
 ]
 
 const secaoAbertaId = ref(null)
