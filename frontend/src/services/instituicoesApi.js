@@ -16,6 +16,11 @@ export async function buscarInstituicoes() {
         // Verificação
         status: abrigo.statusVerificacao,
 
+        cnpj: abrigo.cnpj,
+        telefone: abrigo.telefone,
+        email_contato: abrigo.emailContato,
+        descricao: abrigo.descricao,
+
         vagas_totais: null,
         vagas_ocupadas: null,
 
@@ -56,4 +61,25 @@ export async function buscarInstituicoesProximas(latitude, longitude) {
             longitude: Number(abrigo.longitude)
         }
     }))
+}
+
+// Cadastra abrigo (cria a conta role=abrigo no backend)
+export async function cadastrarAbrigo(dados) {
+    const resposta = await fetch('/api/abrigos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+    })
+
+    if (!resposta.ok) {
+        if (resposta.status === 409) {
+            throw new Error('Já existe um abrigo ou conta com esse CNPJ/e-mail.')
+        }
+        if (resposta.status === 400) {
+            throw new Error('Não foi possível cadastrar. Confira os dados informados.')
+        }
+        throw new Error(`Não foi possível realizar o cadastro (HTTP ${resposta.status})`)
+    }
+
+    return resposta.json()
 }

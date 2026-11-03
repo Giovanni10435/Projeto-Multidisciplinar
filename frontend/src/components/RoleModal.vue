@@ -212,8 +212,8 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { cadastrarConta, entrarNaConta } from '../auth'
 import { cadastrarVoluntario, loginVoluntario } from '../services/voluntarioApi'
+import { cadastrarAbrigo } from '../services/instituicoesApi'
 
 const emit = defineEmits(['select', 'submitInstituicao', 'usuarioAutenticado', 'gestorAutenticado', 'close'])
 
@@ -342,21 +342,18 @@ async function entrar() {
       return
     }
 
-    // Gestor: mantém o fluxo anterior por enquanto.
-    const resultado = entrarNaConta({
-      tipo: perfilEscolhido.value,
-      email: loginForm.email,
+    // Gestor / abrigo: autenticação pelo BFF (role = abrigo)
+    const resultado = await loginVoluntario({
+      email: loginForm.email.trim(),
       senha: loginForm.senha
     })
 
-    if (!resultado.ok) {
-      erro.value = resultado.erro
+    if (resultado.role !== 'abrigo') {
+      erro.value = 'Esta conta não é de abrigo/gestor.'
       return
     }
 
-    const instituicaoId = resultado.conta.perfil?.instituicaoId
-
-    if (!instituicaoId) {
+    if (!resultado.instituicaoId) {
       erro.value = 'Não encontramos o abrigo ligado a esta conta.'
       return
     }
@@ -364,8 +361,8 @@ async function entrar() {
     loginForm.senha = ''
 
     emit('gestorAutenticado', {
-      id: resultado.conta.id,
-      instituicaoId
+      id: resultado.id,
+      instituicaoId: resultado.instituicaoId
     })
   } catch (e) {
     erro.value = e instanceof TypeError
@@ -442,31 +439,47 @@ async function cadastrarUsuario() {
   }
 }
 
-// ----- Cadastrar abrigo / gestor -----
-function cadastrarGestor() {
+// ----- Cadastrar abrigo / gestor pelo BFF -----
+async function cadastrarGestor() {
+  if (cadastrando.value) return
+
   erro.value = ''
+  sucesso.value = ''
+
   if (senhaGestor.value.length < 6) {
     erro.value = 'A senha precisa ter pelo menos 6 caracteres.'
     return
   }
 
-  const resultado = cadastrarConta({
-    tipo: 'gestor',
-    email: formInstituicao.email_contato,
-    senha: senhaGestor.value,
-    perfil: { nome: formInstituicao.nome }
-  })
+  cadastrando.value = true
 
-  if (!resultado.ok) {
-    erro.value = resultado.erro
-    return
+  try {
+    await cadastrarAbrigo({
+      email: formInstituicao.email_contato.trim(),
+      senha: senhaGestor.value,
+      nome: formInstituicao.nome.trim(),
+      cnpj: formInstituicao.cnpj.trim(),
+      descricao: formInstituicao.descricao.trim(),
+      telefone: formInstituicao.telefone.trim(),
+      emailContato: formInstituicao.email_contato.trim(),
+      endereco: formInstituicao.localizacao.endereco.trim(),
+      latitude: formInstituicao.localizacao.latitude,
+      longitude: formInstituicao.localizacao.longitude
+    })
+
+    // Preenche o email para o gestor entrar depois
+    loginForm.email = formInstituicao.email_contato.trim()
+    loginForm.senha = ''
+    senhaGestor.value = ''
+
+    modo.value = 'entrar'
+    sucesso.value = 'Abrigo cadastrado! Entre com seu e-mail e senha.'
+  } catch (e) {
+    erro.value = e instanceof TypeError
+      ? 'Não foi possível conectar ao BFF. Verifique a conexão e o console do navegador.'
+      : e.message || 'Não foi possível realizar o cadastro.'
+  } finally {
+    cadastrando.value = false
   }
-
-  // A senha não vai junto com os dados do abrigo
-  emit(
-    'submitInstituicao',
-    { ...formInstituicao, localizacao: { ...formInstituicao.localizacao } },
-    resultado.conta.id
-  )
 }
 </script>

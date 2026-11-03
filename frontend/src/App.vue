@@ -518,10 +518,19 @@ function usuarioAutenticado({ id, perfil, novo }) {
 }
 
 // Chamado quando o gestor faz login
-function gestorAutenticado({ id, instituicaoId }) {
+async function gestorAutenticado({ id, instituicaoId }) {
   contaGestorId.value = id
   instituicaoGestorId.value = instituicaoId
   exibirModalRole.value = false
+
+  // Recarrega a lista para garantir que o abrigo do gestor está nela
+  try {
+    instituicoes.value = await buscarInstituicoes()
+  } catch (erro) {
+    console.error('Erro ao recarregar abrigos: ', erro)
+  }
+
+  exibirContaGestor.value = true
 }
 
 // Atualiza qualquer campo do abrigo (perfil, doações, horários de voluntários)

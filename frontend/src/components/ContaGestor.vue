@@ -36,7 +36,7 @@
       <!-- Abas -->
       <div style="display: flex; gap: 8px; padding: 12px 24px 0; border-bottom: 1px solid #e2e8f0;">
         <button type="button" @click="aba = 'perfil'" :style="estiloAba(aba === 'perfil')">🏠 Perfil</button>
-        <button type="button" @click="aba = 'doacoes'" :style="estiloAba(aba === 'doacoes')">📦 Doações</button>
+        <button type="button" @click="aba = 'doacoes'" :style="estiloAba(aba === 'doacoes')">📦 Necessidades</button>
         <button type="button" @click="aba = 'voluntarios'" :style="estiloAba(aba === 'voluntarios')">🤝 Voluntários</button>
       </div>
 
@@ -176,7 +176,7 @@
           </form>
         </div>
 
-        <!-- ================= ABA DOAÇÕES ================= -->
+        <!-- ================= ABA NECESSIDADES ================= -->
         <div v-else-if="aba === 'doacoes'">
           <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.5;">
             {{ somenteLeitura
@@ -186,27 +186,23 @@
 
           <form
             v-if="!somenteLeitura"
-            @submit.prevent="adicionarDoacao"
+            @submit.prevent="adicionarNecessidade"
             style="padding: 18px; margin-bottom: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px;"
           >
-            <div style="margin-bottom: 14px; font-size: 14px; font-weight: 800; color: #166534;">➕ Adicionar pedido de doação</div>
+            <div style="margin-bottom: 14px; font-size: 14px; font-weight: 800; color: #166534;">➕ Adicionar necessidade</div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
               <div>
                 <label :style="estiloLabel">Item necessário</label>
-                <input v-model="novaDoacao.item" required type="text" placeholder="Ex: Cobertores" :style="estiloInput" />
+                <input v-model="novaNec.descricao" required type="text" placeholder="Ex: Cobertores" :style="estiloInput" />
               </div>
               <div>
                 <label :style="estiloLabel">Quantidade</label>
-                <input v-model="novaDoacao.quantidade" type="text" placeholder="Ex: 20 unidades" :style="estiloInput" />
+                <input v-model.number="novaNec.quantidade" required type="number" min="1" :style="estiloInput" />
               </div>
             </div>
 
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #1e293b; cursor: pointer;">
-                <input v-model="novaDoacao.urgente" type="checkbox" style="width: 18px; height: 18px; cursor: pointer;" />
-                Urgente
-              </label>
+            <div style="display: flex; justify-content: flex-end;">
               <button
                 type="submit"
                 style="padding: 11px 24px; background: #15803d; color: white; font-size: 14px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;"
@@ -216,36 +212,51 @@
             </div>
           </form>
 
+          <p v-if="erroNec" :style="{ ...estiloErroObj, marginBottom: '12px' }">{{ erroNec }}</p>
+          <p v-if="carregandoNec" style="margin: 0; font-size: 14px; color: #94a3b8;">Carregando...</p>
+
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <div
-              v-for="d in doacoesOrdenadas"
-              :key="d.id"
-              :style="{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                padding: '14px 16px', borderRadius: '12px',
-                background: d.urgente ? '#fff7ed' : '#f8fafc',
-                border: d.urgente ? '1px solid #fed7aa' : '1px solid #e2e8f0'
-              }"
+              v-for="n in necessidadesVisiveis"
+              :key="n.id"
+              style="padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;"
             >
-              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; font-size: 14px;">
-                <span style="font-weight: 800; color: #0f172a;">{{ d.item }}</span>
-                <span style="color: #64748b;">· {{ d.quantidade || 'Qualquer quantidade' }}</span>
-                <span
-                  v-if="d.urgente"
-                  style="padding: 3px 9px; font-size: 11px; font-weight: 800; letter-spacing: 0.03em; color: #b91c1c; background: #fee2e2; border-radius: 999px;"
-                >
-                  URGENTE
-                </span>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; font-size: 14px;">
+                  <span style="font-weight: 800; color: #0f172a;">{{ n.descricao }}</span>
+                  <span style="color: #64748b;">· {{ n.quantidadeRecebida }} de {{ n.quantidadeSolicitada }}</span>
+                  <span
+                    v-if="n.status !== 'ABERTA'"
+                    style="padding: 3px 9px; font-size: 11px; font-weight: 800; color: #166534; background: #dcfce7; border-radius: 999px;"
+                  >
+                    {{ n.status }}
+                  </span>
+                </div>
+                <button v-if="!somenteLeitura" type="button" @click="excluirNecessidade(n.id)" aria-label="Remover necessidade" :style="estiloBotaoRemover">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
               </div>
-              <button v-if="!somenteLeitura" type="button" @click="removerDoacao(d.id)" aria-label="Remover pedido" :style="estiloBotaoRemover">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
+
+              <div style="height: 8px; margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div :style="{ height: '100%', width: porcentagemNec(n) + '%', background: '#10b981', borderRadius: '999px' }"></div>
+              </div>
+
+              <div v-if="!somenteLeitura" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #475569;">
+                Recebido:
+                <input
+                  type="number"
+                  min="0"
+                  :value="n.quantidadeRecebida"
+                  @change="salvarRecebida(n, $event.target.value)"
+                  style="width: 80px; padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 8px;"
+                />
+              </div>
             </div>
 
-            <p v-if="!doacoesOrdenadas.length" style="margin: 0; font-size: 14px; color: #94a3b8;">
-              {{ somenteLeitura ? 'Este abrigo ainda não cadastrou pedidos de doação.' : 'Nenhum pedido de doação ainda.' }}
+            <p v-if="!carregandoNec && !necessidadesVisiveis.length" style="margin: 0; font-size: 14px; color: #94a3b8;">
+              {{ somenteLeitura ? 'Este abrigo ainda não cadastrou necessidades.' : 'Nenhuma necessidade cadastrada ainda.' }}
             </p>
           </div>
         </div>
@@ -340,8 +351,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { calcularCorOcupacao } from '../data'
+import {
+  listarNecessidades,
+  criarNecessidade,
+  atualizarNecessidade,
+  removerNecessidade
+} from '../services/necessidadesApi'
 
 const props = defineProps({
   instituicao: { type: Object, required: true },
@@ -449,32 +466,88 @@ function salvarEdicao() {
   modoPerfil.value = 'ver'
 }
 
-/* ---------- Doações ---------- */
-const novaDoacao = reactive({ item: '', quantidade: '', urgente: false })
-const doacoes = computed(() => props.instituicao.doacoes ?? [])
-// Urgentes primeiro
-const doacoesOrdenadas = computed(() =>
-  [...doacoes.value].sort((a, b) => Number(b.urgente) - Number(a.urgente))
+/* ---------- Necessidades (backend) ---------- */
+const necessidades = ref([])
+const carregandoNec = ref(false)
+const erroNec = ref('')
+const novaNec = reactive({ descricao: '', quantidade: 1 })
+
+// Visitante só vê as abertas; o gestor vê todas
+const necessidadesVisiveis = computed(() =>
+  props.somenteLeitura
+    ? necessidades.value.filter(n => n.status === 'ABERTA')
+    : necessidades.value
 )
 
-function adicionarDoacao() {
-  const item = novaDoacao.item.trim()
-  if (!item) return
-
-  atualizar({
-    doacoes: [
-      ...doacoes.value,
-      { id: novoId(), item, quantidade: novaDoacao.quantidade.trim(), urgente: novaDoacao.urgente }
-    ]
-  })
-  novaDoacao.item = ''
-  novaDoacao.quantidade = ''
-  novaDoacao.urgente = false
+function porcentagemNec(n) {
+  if (!n.quantidadeSolicitada) return 0
+  return Math.min(100, Math.round((n.quantidadeRecebida / n.quantidadeSolicitada) * 100))
 }
 
-function removerDoacao(id) {
-  atualizar({ doacoes: doacoes.value.filter(d => d.id !== id) })
+async function carregarNecessidades() {
+  carregandoNec.value = true
+  erroNec.value = ''
+  try {
+    necessidades.value = await listarNecessidades(props.instituicao.id)
+  } catch (e) {
+    erroNec.value = 'Não foi possível carregar as necessidades.'
+    console.error(e)
+  } finally {
+    carregandoNec.value = false
+  }
 }
+
+async function adicionarNecessidade() {
+  if (props.somenteLeitura) return
+  erroNec.value = ''
+  try {
+    await criarNecessidade(props.instituicao.id, {
+      descricao: novaNec.descricao.trim(),
+      quantidadeSolicitada: Number(novaNec.quantidade)
+    })
+    novaNec.descricao = ''
+    novaNec.quantidade = 1
+    await carregarNecessidades()
+  } catch (e) {
+    erroNec.value = 'Não foi possível adicionar a necessidade.'
+    console.error(e)
+  }
+}
+
+async function salvarRecebida(n, valor) {
+  if (props.somenteLeitura) return
+  erroNec.value = ''
+  const recebida = Number(valor)
+  if (!Number.isInteger(recebida) || recebida < 0) {
+    erroNec.value = 'A quantidade recebida precisa ser um número inteiro, de zero para cima.'
+    await carregarNecessidades()
+    return
+  }
+  try {
+    await atualizarNecessidade(props.instituicao.id, n.id, {
+      quantidadeRecebida: recebida,
+      status: recebida >= n.quantidadeSolicitada ? 'ATENDIDA' : 'ABERTA'
+    })
+    await carregarNecessidades()
+  } catch (e) {
+    erroNec.value = 'Não foi possível atualizar a necessidade.'
+    console.error(e)
+  }
+}
+
+async function excluirNecessidade(id) {
+  if (props.somenteLeitura) return
+  erroNec.value = ''
+  try {
+    await removerNecessidade(props.instituicao.id, id)
+    await carregarNecessidades()
+  } catch (e) {
+    erroNec.value = 'Não foi possível remover a necessidade.'
+    console.error(e)
+  }
+}
+
+onMounted(carregarNecessidades)
 
 /* ---------- Voluntários ---------- */
 const DIAS = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']

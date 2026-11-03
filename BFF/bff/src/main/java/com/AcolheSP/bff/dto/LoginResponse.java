@@ -4,6 +4,6 @@ public record LoginResponse(
     Integer id,
     String email,
     String role,
-    String nome
-) {
-}
+    String nome,
+    Integer instituicaoId
+) {}

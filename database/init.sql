@@ -537,3 +537,9 @@ SELECT
 FROM instituicao i
 JOIN conta c ON c.id = i.conta_id
 WHERE c.email = 'abrigo2.teste@acolhesp.com';
+
+-- =====================================================================
+-- Senha das contas de teste: 123456 (bcrypt)
+-- =====================================================================
+UPDATE conta SET senha_hash = '$2b$10$s4FSy8E5OCXGmtFafS5YnOkTKgEJAD6M2Kel7qze9NghFtyiDiCN6'
+WHERE email LIKE '%.teste@acolhesp.com';
