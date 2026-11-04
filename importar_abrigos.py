@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
-ARQUIVO_ENTRADA = BASE_DIR / "centro_acolhida_adultos_geocodificado.txt"
+ARQUIVO_ENTRADA = BASE_DIR / "centro_acolhida_geocodificado.txt"
 
 # Os grupos entre aspas podem ter qualquer quantidade de caracteres, inclusive vazio.
 PADRAO_LINHA = re.compile(r'^\s*(\d+)\s+"([^"]*)"\s+"([^"]*)"\s*$')
@@ -121,7 +121,7 @@ def ler_registros() -> list[dict[str, object]]:
     if not ARQUIVO_ENTRADA.exists():
         raise FileNotFoundError(
             f"Não encontrei {ARQUIVO_ENTRADA}. Coloque este script na raiz do projeto, "
-            "ao lado de centro_acolhida_adultos_geocodificado.txt."
+            "ao lado de centro_acolhida_geocodificado.txt."
         )
 
     registros = []
