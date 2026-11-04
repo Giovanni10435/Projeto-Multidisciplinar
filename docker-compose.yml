@@ -24,7 +24,7 @@ services:
     working_dir: /app
     volumes:
       - ./importar_abrigos.py:/app/importar_abrigos.py:ro
-      - ./centro_acolhida_adultos_geocodificado.txt:/app/centro_acolhida_adultos_geocodificado.txt:ro
+      - ./centro_acolhida_geocodificado.txt:/app/centro_acolhida_geocodificado.txt:ro
     environment:
       DB_HOST: database
       DB_PORT: "5432"

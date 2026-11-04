@@ -44,8 +44,8 @@
     <l-map
       :center="centroMapa"
       :zoom="14"
-      :max-zoom="19"
-      :min-zoom="10"
+      :max-zoom="16"
+      :min-zoom="12"
       :max-bounds="limitesSP"
       :options="{ zoomControl: false }"
       style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"
@@ -54,13 +54,13 @@
       <l-tile-layer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
         attribution="&copy; Esri"
-        :max-zoom="19"
-        :max-native-zoom="16"
+        :max-zoom="16"
+        :min-zoom="6"
       />
       <l-tile-layer
         url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-        :max-zoom="19"
-        :max-native-zoom="16"
+        :max-zoom="16"
+        :min-zoom="6"
       />
 
       <!-- Botões de zoom no canto inferior direito -->
@@ -333,9 +333,10 @@ const centroMapa = ref([-23.5475, -46.6361])
 const localizacaoUsuario = ref(null)
 const mapaRef = ref(null)
 
+// Limites aproximados da cidade de São Paulo + folga para municípios conurbados
 const limitesSP = ref([
-  [-24.1000, -47.1000],
-  [-23.1000, -45.7000]
+  [-24.0000, -47.1000],
+  [-23.3000, -46.2500]
 ])
 
 onMounted(async() => {
@@ -374,16 +375,54 @@ const abrigoInfo = computed(
 )
 
 function getIconeAbrigo(selecionado) {
-  const size = selecionado ? 44 : 36
+  const size = selecionado ? 52 : 44
+  const cor = selecionado ? '#1d4ed8' : '#2563eb'
+
   return L.divIcon({
-    html: `<svg width="${size}" height="${size}" viewBox="0 0 46 46">
-      <circle cx="23" cy="23" r="20" fill="white" stroke="#334155" stroke-width="3"/>
-      <circle cx="23" cy="23" r="${selecionado ? 13 : 10}" fill="#334155"/>
-      <circle cx="23" cy="23" r="4" fill="white"/>
-    </svg>`,
+    html: `
+      <svg
+        width="${size}"
+        height="${size}"
+        viewBox="0 0 48 48"
+        aria-hidden="true"
+      >
+        <!-- Borda externa nas cores do app -->
+        <circle
+          cx="24"
+          cy="24"
+          r="22"
+          fill="#0f172a"
+        />
+
+        <!-- Contorno branco -->
+        <circle
+          cx="24"
+          cy="24"
+          r="20"
+          fill="white"
+        />
+
+        <!-- Fundo azul do app -->
+        <circle
+          cx="24"
+          cy="24"
+          r="17"
+          fill="${cor}"
+        />
+
+        <!-- Ponto branco central -->
+        <circle
+          cx="24"
+          cy="24"
+          r="5"
+          fill="white"
+        />
+      </svg>
+    `,
     className: '',
     iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2]
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2]
   })
 }
 
@@ -592,3 +631,9 @@ function cadastrarInstituicao(dados, contaId) {
   exibirContaGestor.value = true
 }
 </script>
+
+<style scoped>
+:deep(.leaflet-tile-pane) {
+  filter: contrast(1.6) brightness(0.);
+}
+</style>

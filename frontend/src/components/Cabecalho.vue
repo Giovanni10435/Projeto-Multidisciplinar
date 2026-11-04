@@ -1,17 +1,66 @@
 <template>
   <!-- Cabeçalho no topo da página -->
-  <header
-    style="position: absolute; top: 0; left: 0; width: 100%; height: 64px; box-sizing: border-box; z-index: 1000; display: flex; align-items: center; gap: 4px; padding: 0 16px; background: white; border-bottom: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08); font-family: sans-serif;"
-  >
-    <button
-      v-for="secao in secoes"
-      :key="secao.id"
-      type="button"
-      class="cabecalho-botao"
-      @click="secaoAbertaId = secao.id"
+  <header class="cabecalho">
+    <!-- Logo AcolheSP: A em formato de casa + SP -->
+    <a
+      href="/"
+      class="cabecalho-logo"
+      aria-label="AcolheSP — página inicial"
+      title="AcolheSP"
     >
-      {{ secao.titulo }}
-    </button>
+      <svg
+        width="112"
+        height="44"
+        viewBox="0 0 112 44"
+        fill="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <!-- A minimalista com formato de telhado -->
+        <path
+          d="M5 36L21 8L37 36"
+          stroke="currentColor"
+          stroke-width="4.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+
+        <!-- Travessa do A com abertura central remetendo a uma porta -->
+        <path
+          d="M11 26H17V36M25 36V26H31"
+          stroke="currentColor"
+          stroke-width="3.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+
+        <!-- SP -->
+        <text
+          x="46"
+          y="35"
+          fill="currentColor"
+          font-family="Arial, Helvetica, sans-serif"
+          font-size="34"
+          font-weight="800"
+          letter-spacing="-2"
+        >
+          SP
+        </text>
+      </svg>
+    </a>
+
+    <!-- Seções posicionadas à direita da logo -->
+    <nav class="cabecalho-secoes" aria-label="Informações sobre o AcolheSP">
+      <button
+        v-for="secao in secoes"
+        :key="secao.id"
+        type="button"
+        class="cabecalho-botao"
+        @click="secaoAbertaId = secao.id"
+      >
+        {{ secao.titulo }}
+      </button>
+    </nav>
   </header>
 
   <!-- Janela pequena da seção escolhida (clicar fora também fecha) -->
@@ -48,8 +97,22 @@
           :key="i"
           style="margin: 0 0 12px;"
         >
-          {{ paragrafo }}
+          <template v-if="paragrafo.startsWith('http')">
+            <a
+              :href="paragrafo"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color: #2563eb; font-weight: 700; text-decoration: underline; word-break: break-word;"
+            >
+              {{ paragrafo }}
+            </a>
+          </template>
+
+          <template v-else>
+            {{ paragrafo }}
+          </template>
         </p>
+
         <p v-if="!secaoAberta.conteudo.length" style="margin: 0; color: #94a3b8;">
           Nenhuma informação disponível.
         </p>
@@ -68,9 +131,10 @@ const secoes = [
     icone: '📖',
     titulo: 'Sobre o Projeto',
     conteudo: [
-      'O AcolheSP é um projeto acadêmico desenvolvido por estudantes.',
-      'Seu objetivo é facilitar o acesso a informações sobre instituições de acolhimento e assistência social.',
-      'O projeto busca utilizar a tecnologia para contribuir com pessoas em situação de vulnerabilidade.'
+      'O AcolheSP é um projeto acadêmico desenvolvido por estudantes da Universidade Presbiteriana Mackenzie.',
+      'Seu objetivo é facilitar o acesso a informações sobre abrigos e serviços de assistência social na cidade de São Paulo.',
+      'A plataforma permite visualizar instituições em um mapa interativo, encontrar locais próximos e apoiar abrigos por meio de doações e voluntariado.',
+      'O projeto utiliza tecnologia para contribuir com pessoas em situação de vulnerabilidade social.'
     ]
   },
   {
@@ -89,8 +153,8 @@ const secoes = [
     titulo: 'Informações de Contato',
     conteudo: [
       'Para obter mais informações sobre o projeto, entre em contato com nossa equipe.',
-      'Redes sociais:',
-      'Github: https://github.com/JoaoVitorMintz, Linkedin: https://www.linkedin.com/in/joaomintz/',
+      'GitHub: https://github.com/JoaoVitorMintz',
+      'LinkedIn: https://www.linkedin.com/in/joaomintz/',
       'Projeto acadêmico desenvolvido na Universidade Presbiteriana Mackenzie.'
     ]
   },
@@ -106,7 +170,18 @@ const secoes = [
       '5. Caso queira se candidatar a voluntariado, realize login com uma conta voluntário, selecione o abrigo e se atribua como voluntário nas datas disponíveis pelo abrigo',
       '6. Caso queira se candidatar a abrigo, realize login com uma conta abrigo e altere disponibilidade de voluntariado ou necessidades do abrigo.'
     ]
-  }
+  },
+  {
+  id: 'aviso',
+  icone: '⚠️',
+  titulo: 'Aviso importante',
+  conteudo: [
+    'Por segurança, abrigos e serviços de acolhimento destinados a mulheres vítimas de violência não são exibidos neste mapa.',
+    'Essa medida evita a exposição da localização desses espaços de proteção.',
+    'Para encontrar esses serviços, acesse a página oficial da Prefeitura de São Paulo sobre a rede de apoio a mulheres vítimas de violência:',
+    'https://prefeitura.sp.gov.br/web/assistencia_social/w/rede_socioassistencial/mulheres_vitimas_de_violencia/332513'
+  ]
+},
 ]
 
 const secaoAbertaId = ref(null)
@@ -114,10 +189,65 @@ const secaoAberta = computed(() => secoes.find(s => s.id === secaoAbertaId.value
 </script>
 
 <style scoped>
+.cabecalho {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 64px;
+  box-sizing: border-box;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  /* Reserva o canto direito para o botão Entrar ou a conta */
+  padding: 0 220px 0 20px;
+
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  font-family: sans-serif;
+}
+
+.cabecalho-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  color: #2563eb;
+  text-decoration: none;
+  border-radius: 10px;
+}
+
+.cabecalho-logo svg {
+  display: block;
+}
+
+.cabecalho-logo:hover {
+  color: #1d4ed8;
+}
+
+.cabecalho-secoes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  flex: 1;
+  min-width: 0;
+}
+
 .cabecalho-botao {
   padding: 8px 14px;
+  flex-shrink: 0;
+
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+
   color: #334155;
   background: transparent;
   border: none;
@@ -128,5 +258,28 @@ const secaoAberta = computed(() => secoes.find(s => s.id === secaoAbertaId.value
 .cabecalho-botao:hover {
   background: #f1f5f9;
   color: #1d4ed8;
+}
+
+.cabecalho-logo:focus-visible,
+.cabecalho-botao:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+/* Em telas menores, mantém as seções em uma faixa com rolagem */
+@media (max-width: 1200px) {
+  .cabecalho {
+    gap: 16px;
+    padding-left: 16px;
+  }
+
+  .cabecalho-secoes {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .cabecalho-botao {
+    padding: 8px 10px;
+  }
 }
 </style>
