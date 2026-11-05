@@ -58,6 +58,7 @@ Após realizar a build do projeto com sucesso, você pode iniciar a aplicação 
 Abra o terminal na pasta raiz do projeto (onde está o arquivo `pom.xml`) e execute o seguinte comando:
 
 ```bash
+export SPRING_DATASOURCE_PASSWORD='SUA_SENHA_LOCAL'
 mvn spring-boot:run
 ```
 
@@ -89,6 +90,7 @@ Esperado: container `postgres:16` com status **Up**.
 ```bash
 cd backend/demo
 chmod +x mvnw
+export SPRING_DATASOURCE_PASSWORD='SUA_SENHA_LOCAL'
 ./mvnw spring-boot:run
 ```
 Esperado: `Started DemoApplication in X seconds`. Deixe aberto.
