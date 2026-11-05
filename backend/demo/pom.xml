@@ -79,6 +79,18 @@
 	</dependencies>
 
 	<build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>../db</directory>
+                <targetPath>db</targetPath>
+                <includes>
+                    <include>001_horarios_voluntariado.sql</include>
+                </includes>
+            </testResource>
+        </testResources>
 		<plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

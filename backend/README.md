@@ -161,11 +161,22 @@ mvn -o test
 mvn -o clean package
 ```
 
-A suíte atual contém 174 testes: 152 existentes, 18 testes de fluxos da API
-e quatro testes de concorrência.
+A suíte atual contém 177 testes: 152 existentes, 18 testes de fluxos da API,
+quatro testes de concorrência e três de configuração/migração do banco.
 
-Os testes usam H2 em modo PostgreSQL, com criação e descarte do esquema de
-teste, sem acessar o PostgreSQL de desenvolvimento/produção. A suite inclui
+Sem variáveis externas, os testes usam H2 em modo PostgreSQL, com criação e
+descarte do esquema de teste. No GitHub Actions, as variáveis
+`SPRING_DATASOURCE_*` selecionam o PostgreSQL de testes e
+`SPRING_JPA_HIBERNATE_DDL_AUTO=none` preserva o esquema inicializado pelo workflow.
+O driver é inferido pela URL; não há driver H2 fixo para uma URL PostgreSQL.
+
+A migração de `backend/db/` é incluída somente no classpath dos testes e
+executada depois da inicialização do Hibernate. Assim, o banco de testes
+também recebe `horario_voluntariado` e `voluntariado.horario_id`, sem mudar
+o workflow nem a inicialização do banco de produção. Use somente bancos
+descartáveis para rodar a suíte com variáveis externas.
+
+A suíte inclui
 os testes existentes e testes de integração com filtros de segurança, login
 real, CSRF real, titularidade, horários, candidaturas, doações e concorrência
 com transações independentes. O Mockito é carregado como agente no início da
@@ -173,5 +184,7 @@ JVM para não depender de autoanexação em ambientes restritos.
 
 Relatórios: `backend/demo/target/surefire-reports/` e
 `backend/demo/target/site/jacoco/index.html`.
+Os testes de regressão verificam a seleção do driver com as mesmas variáveis
+do Actions e aplicam a migração real a um esquema anterior mínimo em H2.
 A execução em PostgreSQL real e o script incremental ainda precisam ser
 validados nesse ambiente; H2 não substitui essa verificação de implantação.
