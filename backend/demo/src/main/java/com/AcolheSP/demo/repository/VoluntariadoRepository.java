@@ -1,5 +1,8 @@
 package com.AcolheSP.demo.repository;
 
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +16,11 @@ public interface VoluntariadoRepository extends JpaRepository<Voluntariado, Inte
 
     List<Voluntariado> findByInstituicaoId(Integer instituicaoId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Voluntariado> findByIdAndInstituicaoId(Integer id, Integer instituicaoId);
+
+    boolean existsByVoluntarioIdAndHorarioIdAndStatusIn(
+            Integer voluntarioId, Integer horarioId, Collection<StatusVoluntariado> status);
 
     // Evita o mesmo voluntário se candidatar duas vezes enquanto a candidatura anterior está ativa
     boolean existsByVoluntarioIdAndInstituicaoIdAndStatusIn(

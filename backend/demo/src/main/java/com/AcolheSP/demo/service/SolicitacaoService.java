@@ -1,5 +1,8 @@
 package com.AcolheSP.demo.service;
 
+import com.AcolheSP.demo.repository.NecessidadeRepository;
+import java.util.Locale;
+
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -32,12 +35,15 @@ public class SolicitacaoService {
     private final DoacaoRepository doacaoRepo;
     private final VoluntariadoRepository voluntariadoRepo;
     private final InstituicaoRepository instituicaoRepo;
+    private final NecessidadeRepository necessidadeRepo;
 
     public SolicitacaoService(DoacaoRepository doacaoRepo, VoluntariadoRepository voluntariadoRepo,
-            InstituicaoRepository instituicaoRepo) {
+            InstituicaoRepository instituicaoRepo,
+            NecessidadeRepository necessidadeRepo) {
         this.doacaoRepo = doacaoRepo;
         this.voluntariadoRepo = voluntariadoRepo;
         this.instituicaoRepo = instituicaoRepo;
+        this.necessidadeRepo = necessidadeRepo;
     }
 
     // Lista tudo que o abrigo recebeu (mais recentes primeiro)
@@ -60,6 +66,7 @@ public class SolicitacaoService {
     public SolicitacaoResponse atualizar(Integer instituicaoId, Integer solicitacaoId, SolicitacaoRequest req) {
         exigirInstituicao(instituicaoId);
 
+        if (req == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Corpo obrigatório");
         String tipo = normalizar(req.tipo());
         if (tipo.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -97,8 +104,15 @@ public class SolicitacaoService {
 
         // Entregue: soma na necessidade e fecha ela como ATENDIDA quando bater a meta
         if (novo == StatusDoacao.ENTREGUE) {
-            var n = d.getNecessidade();
-            n.setQuantidadeRecebida(n.getQuantidadeRecebida() + d.getQuantidade());
+            if (d.getStatus() != StatusDoacao.CONFIRMADA) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirme a doação antes de registrar a entrega");
+            }
+            var n = necessidadeRepo.buscarComBloqueio(d.getNecessidade().getId()).orElseThrow();
+            long recebida = (long) n.getQuantidadeRecebida() + d.getQuantidade();
+            if (recebida > Integer.MAX_VALUE) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Quantidade recebida excede o limite suportado");
+            }
+            n.setQuantidadeRecebida((int) recebida);
             if (n.getQuantidadeRecebida() >= n.getQuantidadeSolicitada()
                     && n.getStatus() == StatusNecessidade.ABERTA) {
                 n.setStatus(StatusNecessidade.ATENDIDA);
@@ -129,6 +143,12 @@ public class SolicitacaoService {
                     "Voluntariado já está " + v.getStatus().name() + " e não pode mais mudar");
         }
 
+        if ((novo == StatusVoluntariado.EM_ANDAMENTO && v.getStatus() != StatusVoluntariado.APROVADO)
+                || (novo == StatusVoluntariado.FINALIZADO && v.getStatus() != StatusVoluntariado.EM_ANDAMENTO)
+                || (novo == StatusVoluntariado.APROVADO && v.getStatus() != StatusVoluntariado.PENDENTE)
+                || (novo == StatusVoluntariado.RECUSADO && v.getStatus() != StatusVoluntariado.PENDENTE)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Transição de status inválida para voluntariado");
+        }
         v.setStatus(novo);
         return SolicitacaoResponse.de(voluntariadoRepo.save(v));
     }
@@ -146,7 +166,7 @@ public class SolicitacaoService {
         }
         return Normalizer.normalize(texto.trim(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
-                .toUpperCase()
+                .toUpperCase(Locale.ROOT)
                 .replaceAll("[\\s-]+", "_");
     }
 }

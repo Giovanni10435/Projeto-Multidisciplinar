@@ -1,5 +1,9 @@
 package com.AcolheSP.demo.service;
 
+import com.AcolheSP.demo.model.StatusDoacao;
+import com.AcolheSP.demo.repository.DoacaoRepository;
+import java.util.Locale;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -20,10 +24,13 @@ public class NecessidadeService {
 
     private final NecessidadeRepository necessidadeRepo;
     private final InstituicaoRepository instituicaoRepo;
+    private final DoacaoRepository doacaoRepo;
 
-    public NecessidadeService(NecessidadeRepository necessidadeRepo, InstituicaoRepository instituicaoRepo) {
+    public NecessidadeService(NecessidadeRepository necessidadeRepo, InstituicaoRepository instituicaoRepo,
+            DoacaoRepository doacaoRepo) {
         this.necessidadeRepo = necessidadeRepo;
         this.instituicaoRepo = instituicaoRepo;
+        this.doacaoRepo = doacaoRepo;
     }
 
     // UC09 - Cadastrar necessidade
@@ -31,7 +38,7 @@ public class NecessidadeService {
     public NecessidadeResponse cadastrarNecessidade(Integer instituicaoId, NecessidadeRequest req) {
         Instituicao inst = buscarInstituicao(instituicaoId);
 
-        if (req.descricao() == null || req.descricao().isBlank()) {
+        if (req == null || req.descricao() == null || req.descricao().isBlank() || req.descricao().trim().length() > 255) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Campo obrigatório: descricao");
         }
         if (req.quantidadeSolicitada() == null || req.quantidadeSolicitada() <= 0) {
@@ -40,11 +47,12 @@ public class NecessidadeService {
 
         var n = new Necessidade();
         n.setInstituicao(inst);
-        n.setDescricao(req.descricao());
+        n.setDescricao(req.descricao().trim());
         n.setQuantidadeSolicitada(req.quantidadeSolicitada());
         n.setQuantidadeRecebida(validarRecebida(req.quantidadeRecebida(), 0));
         n.setStatus(converterStatus(req.status(), StatusNecessidade.ABERTA));
 
+        validarSaldo(n);
         return NecessidadeResponse.de(necessidadeRepo.save(n));
     }
 
@@ -52,9 +60,12 @@ public class NecessidadeService {
     @Transactional
     public NecessidadeResponse atualizarNecessidade(Integer instituicaoId, Integer necessidadeId, NecessidadeRequest req) {
         Necessidade n = buscarNecessidade(instituicaoId, necessidadeId);
-
-        if (req.descricao() != null && !req.descricao().isBlank()) {
-            n.setDescricao(req.descricao());
+        if (req == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Corpo obrigatório");
+        if (req.descricao() != null) {
+            if (req.descricao().isBlank() || req.descricao().trim().length() > 255) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "descricao deve ter entre 1 e 255 caracteres");
+            }
+            n.setDescricao(req.descricao().trim());
         }
         if (req.quantidadeSolicitada() != null) {
             if (req.quantidadeSolicitada() <= 0) {
@@ -67,13 +78,19 @@ public class NecessidadeService {
         }
         n.setStatus(converterStatus(req.status(), n.getStatus()));
 
+        validarSaldo(n);
         return NecessidadeResponse.de(necessidadeRepo.save(n));
     }
 
     // Remover necessidade
     @Transactional
     public void removerNecessidade(Integer instituicaoId, Integer necessidadeId) {
-        necessidadeRepo.delete(buscarNecessidade(instituicaoId, necessidadeId));
+        Necessidade n = buscarNecessidade(instituicaoId, necessidadeId);
+        if (doacaoRepo.existsByNecessidadeId(necessidadeId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Necessidade com doações não pode ser removida; encerre a necessidade");
+        }
+        necessidadeRepo.delete(n);
     }
 
     // Extra (para teste): lista as necessidades de um abrigo
@@ -95,6 +112,18 @@ public class NecessidadeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Necessidade não encontrada nesse abrigo"));
     }
 
+    private void validarSaldo(Necessidade n) {
+        long comprometida = n.getId() == null ? 0 : doacaoRepo.quantidadeComprometida(n.getId(),
+                List.of(StatusDoacao.PENDENTE, StatusDoacao.CONFIRMADA));
+        if ((long) n.getQuantidadeRecebida() + comprometida > n.getQuantidadeSolicitada()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "quantidadeSolicitada não pode ser menor que o total recebido e comprometido");
+        }
+        if (n.getStatus() == StatusNecessidade.ABERTA && n.getQuantidadeRecebida().equals(n.getQuantidadeSolicitada())) {
+            n.setStatus(StatusNecessidade.ATENDIDA);
+        }
+    }
+
     private static Integer validarRecebida(Integer valor, int padrao) {
         if (valor == null) {
             return padrao;
@@ -110,7 +139,7 @@ public class NecessidadeService {
             return padrao;
         }
         try {
-            return StatusNecessidade.valueOf(texto.trim().toUpperCase());
+            return StatusNecessidade.valueOf(texto.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status inválido (use ABERTA, ATENDIDA ou ENCERRADA)");
         }

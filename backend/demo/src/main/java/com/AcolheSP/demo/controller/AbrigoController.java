@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +29,7 @@ public class AbrigoController {
 
     // UC07: Cadastrar abrigo (mesma rota do BFF)
     @PostMapping("/api/abrigos")
+    @PreAuthorize("@acesso.admin(authentication)")
     public ResponseEntity<AbrigoResponse> cadastrarAbrigo(@RequestBody AbrigoRequest abrigoDados) {
         var criado = abrigoService.cadastrarAbrigo(abrigoDados);
         return ResponseEntity.created(URI.create("/api/abrigos/" + criado.id())).body(criado);
@@ -49,6 +51,7 @@ public class AbrigoController {
 
     // UC08: Atualizar informações do abrigo
     @PutMapping("/api/abrigos/{id}")
+    @PreAuthorize("@acesso.abrigo(authentication, #id)")
     public AbrigoResponse atualizarAbrigo(@PathVariable Integer id, @RequestBody AbrigoRequest abrigoDados) {
         return abrigoService.atualizarAbrigo(id, abrigoDados);
     }

@@ -1,5 +1,8 @@
 package com.AcolheSP.demo.repository;
 
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +15,10 @@ import com.AcolheSP.demo.model.StatusNecessidade;
 
 public interface InstituicaoRepository extends JpaRepository<Instituicao, Integer> {
     boolean existsByCnpj(String cnpj);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from Instituicao i where i.id = :id")
+    Optional<Instituicao> buscarComBloqueio(@Param("id") Integer id);
 
     // UC01: busca por nome (parte do nome, sem diferenciar maiúscula/minúscula)
     List<Instituicao> findByNomeContainingIgnoreCaseOrderByNome(String nome);

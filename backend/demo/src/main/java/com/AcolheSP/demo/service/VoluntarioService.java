@@ -1,5 +1,7 @@
 package com.AcolheSP.demo.service;
 
+import java.util.Locale;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,18 +32,18 @@ public class VoluntarioService {
     public VoluntarioResponse cadastrar(VoluntarioRequest req) {
         exigir(req.email(), "email");
         exigir(req.nome(), "nome");
-        if (contaRepo.existsByEmail(req.email())) {
+        if (contaRepo.existsByEmailIgnoreCase(req.email().trim())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe uma conta com esse email");
         }
 
         String senhaHash = passwordHasher.hashDaNovaSenha(req.senha());
 
         var v = new Voluntario();
-        v.setEmail(req.email());
+        v.setEmail(req.email().trim().toLowerCase(Locale.ROOT));
         v.setSenhaHash(senhaHash);
         v.setRole("usuario");
         v.setAtivo(true);
-        v.setNome(req.nome());
+        v.setNome(req.nome().trim());
         v.setTelefone(req.telefone());
         v.setDisponibilidade(req.disponibilidade());
         return VoluntarioResponse.de(voluntarioRepo.save(v));

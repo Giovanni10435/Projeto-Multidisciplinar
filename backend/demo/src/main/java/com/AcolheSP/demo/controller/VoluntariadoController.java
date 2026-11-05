@@ -3,6 +3,7 @@ package com.AcolheSP.demo.controller;
 import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,7 @@ public class VoluntariadoController {
 
     // UC06: Demonstrar interesse em voluntariado (mesma rota do BFF)
     @PostMapping("/api/instituicoes/{instituicaoId}/voluntariados")
+    @PreAuthorize("@acesso.voluntario(authentication, #voluntariadoDados.voluntarioId())")
     public ResponseEntity<SolicitacaoResponse> demonstrarInteresse(
             @PathVariable Integer instituicaoId,
             @RequestBody VoluntariadoRequest voluntariadoDados) {

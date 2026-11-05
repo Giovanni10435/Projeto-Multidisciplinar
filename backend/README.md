@@ -1,207 +1,177 @@
-# BACKEND
+# Backend AcolheSP
 
-## Configuração do Ambiente Linux ⚒️
+API REST em Java 21 / Spring Boot, com controllers, services transacionais,
+repositories JPA e PostgreSQL. As implementações desta revisão estão somente
+em `backend/`; não há mudanças no frontend, no BFF nem no banco em produção.
 
-Abra um terminal na pasta onde está localizado o arquivo `pom.xml` e execute o seguinte comando:
+## Issues abertas analisadas
 
-```bash
-mvn clean install
-```
-**Importante:** Caso queira rodar no Windows, necessário colocar o maven nas **Variáveis de Ambiente**.
+Repositório: `Giovanni10435/Projeto-Multidisciplinar`. Base da revisão:
+`2f48dd19f8471c8e70431fb3e14d3d928cc1de01` (`main`).
 
-## Configuração do Ambiente Windows ⚒️
+| Issue | Implementação no backend |
+| --- | --- |
+| [#12](https://github.com/Giovanni10435/Projeto-Multidisciplinar/issues/12) Autenticação | Login BCrypt, sessão Spring Security, CSRF, consulta da conta atual, logout, autorização por conta e instituição. |
+| [#32](https://github.com/Giovanni10435/Projeto-Multidisciplinar/issues/32) Login de abrigo | Autentica a conta existente e retorna `instituicaoId`; conta de abrigo sem vínculo recebe 403. Nenhum novo cadastro público de abrigo foi criado. |
+| [#33](https://github.com/Giovanni10435/Projeto-Multidisciplinar/issues/33) Necessidades e voluntariado | CRUD de necessidades protegido por titularidade; CRUD persistente dos horários, com validação de dia, função e intervalo. |
+| [#34](https://github.com/Giovanni10435/Projeto-Multidisciplinar/issues/34) Candidaturas e doações | Candidatura geral ou ligada a horário; validação de disponibilidade e duplicidade; compromisso de doação respeita o saldo; entrega contabilizada uma vez. |
 
-Para configurar o **Apache Maven** nas Variáveis de Ambiente do Windows e fazer com que o comando `mvn` funcione no seu terminal, siga o passo a passo detalhado abaixo:
+Essas issues têm apenas título (com exceção da #32), sem comentários ou
+critérios adicionais. Para o voluntariado do abrigo, a implementação segue os
+campos já presentes na interface: dia da semana, função, início e fim.
+As issues não foram fechadas no GitHub e nenhum push foi feito.
 
-### Passo 1: Copiar o caminho do Maven
-1. Navegue até a pasta onde você descompactou o Maven (por exemplo, `C:\Program Files\apache-maven-3.9.x`).
-2. **Copie o caminho completo** dessa pasta principal na barra de endereços do Explorador de Arquivos.
+## Banco existente e execução
 
-### Passo 2: Abrir a tela de Variáveis de Ambiente
-1. Pressione a tecla **Windows** no teclado.
-2. Digite **"editar as variáveis de ambiente do sistema"** e clique na opção correspondente que aparecer.
-3. Na janela que se abrir (*Propriedades do Sistema*), clique no botão **"Variáveis de Ambiente..."** localizado na parte inferior.
-
-### Passo 3: Criar a variável `MAVEN_HOME`
-1. Na seção **Variáveis do Sistema** (a metade inferior da tela), clique no botão **Novo...**.
-2. Preencha os campos da seguinte forma:
-   * **Nome da variável:** `MAVEN_HOME`
-   * **Valor da variável:** Cole o caminho copiado no Passo 1 (exemplo: `C:\Program Files\apache-maven-3.9.x`).
-3. Clique em **OK**.
-
-### Passo 4: Adicionar ao `Path` do sistema
-1. Ainda em **Variáveis do Sistema**, role a lista até encontrar a variável chamada **`Path`** (ou `PATH`).
-2. Selecione-a e clique em **Editar...**.
-3. Na nova janela, clique no botão **Novo** do lado direito.
-4. Digite exatamente o seguinte texto: `%MAVEN_HOME%\bin`
-5. Clique em **OK** na janela do Path, depois em **OK** na janela de Variáveis de Ambiente e em **OK** na de Propriedades do Sistema para salvar tudo.
-
----
-
-### Passo 5: Validar a configuração
-Para garantir que tudo foi configurado perfeitamente:
-
-1. Feche todos os terminais que estiverem abertos para atualizar o sistema.
-2. Abra um **novo terminal**.
-3. Digite o comando abaixo e aperte Enter:
-   ```bash
-   mvn -version
-   ```
-
-Se a configuração estiver correta, o terminal exibirá informações detalhadas sobre a versão do Maven. Depois disso, você já poderá rodar o seu comando `mvn clean install` na pasta do seu projeto.
-
-## Como Rodar a Aplicação Spring Boot ⚙️
-
-Após realizar a build do projeto com sucesso, você pode iniciar a aplicação de duas formas utilizando o terminal:
-
-### Usando o Plugin do Spring Boot
-Abra o terminal na pasta raiz do projeto (onde está o arquivo `pom.xml`) e execute o seguinte comando:
+A configuração de produção continua usando o PostgreSQL existente e
+`spring.jpa.hibernate.ddl-auto=none`. Antes de iniciar esta versão, aplique
+**uma vez**, com as credenciais do banco de destino, o script incremental:
 
 ```bash
-mvn spring-boot:run
+# Na raiz do repositório; DATABASE_URL deve apontar para o banco desejado.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/db/001_horarios_voluntariado.sql
 ```
 
-### Validando a Inicialização
-Após executar qualquer um dos comandos acima, fique atento ao terminal:
-* A aplicação estará rodando com sucesso quando você vir o logotipo do **Spring** em arte ASCII e a mensagem `Started [NomeDaAplicacao] in X seconds`.
-* Por padrão, você poderá acessar a aplicação pelo navegador através do endereço: **`http://localhost:8080`**.
+Ele cria `horario_voluntariado` e adiciona a FK opcional `voluntariado.horario_id`.
+As candidaturas antigas continuam válidas com `horario_id = NULL`. O script
+não recria nem remove as tabelas existentes. Não é executado automaticamente
+pela aplicação e não foi aplicado no banco de produção nesta revisão.
 
-## Hello World TG2: rodar e testar (Codespaces ou local) 🚀
-
-Stack do teste: **Vue (5173) → Spring Boot (8080) → PostgreSQL (5432)**.
-
-No **Codespaces**, Java, Node e Docker já vêm do `.devcontainer`. Use 3 terminais (ícone **+** do painel do terminal):
-
-- **T1:** banco e teste (fica livre)
-- **T2:** backend (fica rodando)
-- **T3:** frontend (fica rodando)
-
-### 1. Ligar o banco (T1, na raiz do projeto)
-
-```bash
-docker compose up -d
-docker ps
-```
-Esperado: container `postgres:16` com status **Up**.
-
-### 2. Ligar o backend (T2)
+Depois:
 
 ```bash
 cd backend/demo
-chmod +x mvnw
-./mvnw spring-boot:run
+mvn test
+mvn spring-boot:run
 ```
-Esperado: `Started DemoApplication in X seconds`. Deixe aberto.
 
-> Aqui usamos `./mvnw` (Maven Wrapper). Não precisa instalar o Maven.
+A API usa a porta 8080. Configure o PostgreSQL pelas propriedades existentes
+ou por `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` e
+`SPRING_DATASOURCE_PASSWORD`. Para HTTPS em produção, configure também
+`SERVER_SERVLET_SESSION_COOKIE_SECURE=true`.
 
-### 3. Ligar o frontend (T3)
+## Contrato de autenticação
+
+1. Faça `GET /api/auth/csrf`. Preserve o cookie `JSESSIONID` e leia `headerName`
+   e `token` do JSON retornado.
+2. Envie `POST /api/auth/login` com o mesmo cookie, o token no header informado
+   e `{"email":"...","senha":"..."}`. O backend troca o ID da sessão no login.
+3. Preserve o cookie atualizado. Escritas autenticadas continuam exigindo
+   cookie e header CSRF. Obtenha um novo token após login, logout ou troca de sessão.
+4. `GET /api/auth/me` consulta a conta atual; `POST /api/auth/logout`, com CSRF,
+   invalida a sessão e responde 204. A sessão expira após 30 minutos de inatividade.
+
+O retorno do login mantém `id`, `email`, `role`, `nome` e `instituicaoId`.
+Não retorna senha nem hash. E-mails são comparados sem diferenciar maiúsculas
+e minúsculas, e novos cadastros são normalizados. Senhas informadas no cadastro
+continuam exigindo ao menos seis caracteres, com limite BCrypt de 72 bytes UTF-8.
+Credenciais incorretas recebem 401; conta inativa com senha válida recebe 403.
+
+Consultas públicas: catálogo e detalhes de abrigos, mapa, necessidades e
+horários de voluntariado. Cadastro de voluntário e login são públicos, mas
+exigem CSRF. As demais operações exigem sessão. Um voluntário só pode agir
+com seu próprio ID, e um gestor só pode administrar sua instituição. Uma
+conta desativada perde o acesso às operações protegidas mesmo com sessão já
+aberta. O cadastro já existente de abrigo ficou restrito a administradores.
+
+**Integração com BFF/frontend:** o BFF atual não encaminha sessão e CSRF entre
+o navegador e o backend. Para usar os endpoints protegidos através dele,
+será necessário encaminhar `Cookie`, `Set-Cookie` e o header CSRF, além de
+expor os endpoints de CSRF, sessão e horários. Isso não foi alterado nesta
+revisão por estar fora da pasta autorizada. Os fluxos foram testados diretamente
+na API do backend, não ponta a ponta no navegador. Não há fallback inseguro
+que permita executar uma operação apenas enviando IDs ou roles no JSON.
+
+## Rotas e regras
+
+### Horários de voluntariado
+
+Base: `/api/instituicoes/{instituicaoId}/horarios-voluntariado`.
+
+- `GET`: lista horários ativos, ordenados por dia, início e ID. Consulta pública.
+- `POST`: cria horário; requer o gestor do abrigo. Retorna 201 e `Location`.
+- `PUT /{horarioId}`: substitui os campos do horário ativo; mesmo gestor.
+- `DELETE /{horarioId}`: desativa o horário, preservando o histórico. Retorna 204.
+
+Exemplo de corpo para criar/alterar:
+
+```json
+{"dia":"Sábado","funcao":"Cozinha","inicio":"08:00","fim":"12:00"}
+```
+
+Dias válidos: Segunda-feira, Terça-feira, Quarta-feira, Quinta-feira,
+Sexta-feira, Sábado e Domingo. A função deve ter 1 a 150 caracteres, e o fim
+precisa ser posterior ao início no mesmo dia.
+
+### Candidaturas
+
+`POST /api/instituicoes/{id}/voluntariados` mantém o contrato anterior e aceita
+`horarioId` (ou `horario_id`) opcional. O `voluntarioId` deve ser o da sessão.
+Horários de outro abrigo ou desativados são rejeitados. A resposta inclui
+`horarioId`, além dos campos anteriores.
+
+```json
+{"voluntarioId":123,"horarioId":45,"dataInicio":"2026-11-14","telefone":"11999999999"}
+```
+
+A candidatura nasce PENDENTE. Uma candidatura geral ativa impede uma segunda
+candidatura geral no mesmo abrigo; com horário, impede duplicação no mesmo
+horário. Horários diferentes aceitam candidaturas distintas. PENDENTE,
+APROVADO e EM_ANDAMENTO contam como ativos. Contato/disponibilidade informados
+atualizam o cadastro. Datas invertidas e campos acima dos limites são rejeitados.
+
+### Necessidades, doações e solicitações
+
+As rotas existentes foram mantidas:
+
+- `GET/POST /api/instituicoes/{id}/necessidades` e
+  `PUT/DELETE /api/instituicoes/{id}/necessidades/{necessidadeId}`.
+- `POST /api/doacoes`: `voluntarioId`, `necessidadeId` e `quantidade`.
+- `GET /api/instituicoes/{id}/solicitacoes` e
+  `PUT /api/instituicoes/{id}/solicitacoes/{solicitacaoId}`.
+
+A quantidade disponível para novos compromissos é a solicitada menos a recebida
+e menos as doações PENDENTES/CONFIRMADAS. Prometer acima desse saldo responde
+409. Cancelamento/recusa libera o saldo, e apenas a entrega soma na quantidade
+recebida. O gestor não pode reduzir a meta abaixo do recebido e comprometido.
+Uma necessidade com doações não pode ser apagada: deve ser encerrada, mantendo
+o histórico. Os conflitos de integridade são retornados como 409 sem expor SQL.
+
+Fluxos de status:
+
+- Doação: PENDENTE -> CONFIRMADA -> ENTREGUE; PENDENTE/CONFIRMADA podem ser
+  CANCELADAS. É necessário confirmar antes de registrar a entrega.
+- Voluntariado: PENDENTE -> APROVADO -> EM_ANDAMENTO -> FINALIZADO.
+  PENDENTE pode ser RECUSADO; estados ativos podem ser CANCELADOS.
+- Estados finais não podem ser reabertos. Os aliases existentes de status
+  (APROVADA, RECUSADA, CONCLUÍDA, etc.) continuam aceitos.
+
+Bloqueios transacionais serializam promessas do mesmo saldo, candidaturas no
+mesmo abrigo e alterações de status. Duas confirmações simultâneas de entrega
+não somam a mesma doação duas vezes; entregas distintas não perdem atualizações.
+
+## Testes
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-Esperado: `VITE ready` e `Local: http://localhost:5173/`. Deixe aberto.
-
-
-### Problema: `CMD.EXE` / `UNC` / `vite não é reconhecido` / `EISDIR` (WSL)
-
-**Sintoma:** ao rodar `npm install` ou `npm run dev` no WSL aparece `CMD.EXE foi iniciado...`, `caminhos UNC`, `EISDIR` ou `'vite' não é reconhecido`.
-
-**Causa:** o terminal está usando o npm do **Windows**, e não o do Linux.
-
-**Solução:**
-
-1. Trocar para o npm do Linux:
-```bash
-source ~/.nvm/nvm.sh
-nvm use 22
-nvm alias default 22
-which npm
-```
-Esperado: o caminho tem `.nvm` (nada de `/mnt/c/...`).
-
-2. Limpar e reinstalar:
-```bash
-cd frontend
-rm -rf node_modules
-npm install
-npm run dev
-```
-Esperado: `VITE ready`, sem o aviso do `CMD.EXE`.
-
-3. Se o `which npm` ainda mostrar `/mnt/c/...`, rode uma vez e abra um terminal novo:
-```bash
-echo 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; nvm use 22 >/dev/null' >> ~/.bashrc
-```
-Depois repita o passo 2.
-
-**Node não instalado no WSL:**
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-source ~/.bashrc
-nvm install 22
+cd backend/demo
+mvn test
+# Se todas as dependências já estiverem no cache:
+mvn -o test
+# Recompilar, testar e gerar o JAR sem artefatos anteriores:
+mvn -o clean package
 ```
 
-### 4. Acessar no navegador
+A suíte atual contém 174 testes: 152 existentes, 18 testes de fluxos da API
+e quatro testes de concorrência.
 
-**Backend direto (API):**
+Os testes usam H2 em modo PostgreSQL, com criação e descarte do esquema de
+teste, sem acessar o PostgreSQL de desenvolvimento/produção. A suite inclui
+os testes existentes e testes de integração com filtros de segurança, login
+real, CSRF real, titularidade, horários, candidaturas, doações e concorrência
+com transações independentes. O Mockito é carregado como agente no início da
+JVM para não depender de autoanexação em ambientes restritos.
 
-- Local: `http://localhost:8080/api/hello-world`
-- Codespaces: aba **PORTS** > porta **8080** > ícone do globo. Na URL que abrir, acrescente `/api/hello-world` no final.
-
-Esperado: `{"mensagem":"Hello World do AcolheSP, direto do PostgreSQL!"}`
-
-**Tela (frontend):**
-
-- Local: `http://localhost:5173`
-- Codespaces: aba **PORTS** > porta **5173** > ícone do globo.
-
-Esperado: **Conectado com Sucesso** e a mensagem do banco.
-
-### 5. Teste único (passa pelo front, back e banco)
-
-No **T1**, na raiz do projeto:
-
-```bash
-docker compose exec database psql -U app -d acolhesp -c "update mensagem set texto = 'Hello World alterado direto no banco';"
-```
-Esperado: `UPDATE 1`.
-
-Agora, na **tela**, clique em **Testar Conexão Novamente**.
-
-Esperado:
-
-- **Front:** a tela mostra **Hello World alterado direto no banco**.
-- **Back (T2):** aparece o log abaixo.
-- **Banco:** o texto lido é o que você acabou de gravar.
-
-```
-[1/3] Requisicao recebida do frontend em /api/hello-world
-Hibernate: select m1_0.id,m1_0.texto from mensagem m1_0
-[2/3] Mensagem lida do PostgreSQL: Hello World alterado direto no banco
-[3/3] Respondendo ao frontend em JSON
-```
-
-### 6. Desligar
-
-1. T3: `Ctrl+C`
-2. T2: `Ctrl+C`
-3. T1: `docker compose stop`
-
-Não use `docker compose down -v` (apaga os dados do banco).
-
-### Se der erro
-
-| Erro | Faça |
-|---|---|
-| `Connection refused 5432` no backend | `docker compose up -d` na raiz |
-| `Cannot connect to the Docker daemon` | `sudo service docker start` |
-| `Permission denied` no `mvnw` | `chmod +x mvnw` |
-| `curl`/navegador na 8080 dá 401 | Conferir se existe `SecurityConfig.java` |
-| Tela: "Erro de Comunicação" | Subir o backend (T2) |
-| `sh: vite: Permission denied` | `cd frontend && rm -rf node_modules && npm install` |
-| `Blocked request. This host is not allowed` (Codespaces) | No `frontend/vite.config.js`, dentro de `server`, adicionar `allowedHosts: true` e reiniciar o `npm run dev` |
-| Nada aparece no log do backend | Clicar no botão da tela (o log só aparece quando chega requisição) |
-| Porta ocupada | `pkill -f vite` ou `pkill -f spring-boot` |
+Relatórios: `backend/demo/target/surefire-reports/` e
+`backend/demo/target/site/jacoco/index.html`.
+A execução em PostgreSQL real e o script incremental ainda precisam ser
+validados nesse ambiente; H2 não substitui essa verificação de implantação.

@@ -1,5 +1,7 @@
 package com.AcolheSP.demo.service;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +33,7 @@ public class DoacaoService {
     // UC05 - Realizar doação (nasce PENDENTE; o abrigo confirma/recusa no UC11)
     @Transactional
     public SolicitacaoResponse realizarDoacao(DoacaoRequest req) {
-        if (req.voluntarioId() == null) {
+        if (req == null || req.voluntarioId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Campo obrigatório: voluntarioId");
         }
         if (req.necessidadeId() == null) {
@@ -43,11 +45,21 @@ public class DoacaoService {
 
         var voluntario = voluntarioRepo.findById(req.voluntarioId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Voluntário não encontrado"));
-        var necessidade = necessidadeRepo.findById(req.necessidadeId())
+        var necessidade = necessidadeRepo.buscarComBloqueio(req.necessidadeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Necessidade não encontrada"));
 
         if (necessidade.getStatus() != StatusNecessidade.ABERTA) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Essa necessidade não está mais aberta");
+        }
+
+        if (!voluntario.isAtivo()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Voluntário inativo");
+        }
+        long comprometida = doacaoRepo.quantidadeComprometida(necessidade.getId(),
+                List.of(StatusDoacao.PENDENTE, StatusDoacao.CONFIRMADA));
+        long disponivel = (long) necessidade.getQuantidadeSolicitada() - necessidade.getQuantidadeRecebida() - comprometida;
+        if (req.quantidade() > disponivel) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "quantidade excede o saldo disponível da necessidade");
         }
 
         var d = new Doacao();

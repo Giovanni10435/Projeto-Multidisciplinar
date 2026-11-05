@@ -1,5 +1,7 @@
 package com.AcolheSP.demo.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,12 +27,14 @@ public class SolicitacaoController {
 
     // UC11: Listar solicitações (doações + voluntariados) do abrigo
     @GetMapping
+    @PreAuthorize("@acesso.abrigo(authentication, #instituicaoId)")
     public List<SolicitacaoResponse> listar(@PathVariable Integer instituicaoId) {
         return solicitacaoService.listar(instituicaoId);
     }
 
     // UC11: Aprovar/recusar solicitação. Body: {"tipo":"DOACAO|VOLUNTARIADO","status":"APROVADA|RECUSADA|..."}
     @PutMapping("/{solicitacaoId}")
+    @PreAuthorize("@acesso.abrigo(authentication, #instituicaoId)")
     public SolicitacaoResponse atualizar(
             @PathVariable Integer instituicaoId,
             @PathVariable Integer solicitacaoId,

@@ -50,6 +50,10 @@ public class Voluntariado {
     @JoinColumn(name = "instituicao_id", nullable = false)
     private Instituicao instituicao;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "horario_id")
+    private HorarioVoluntariado horario;
+
     @PrePersist
     void prePersist() {
         if (dataSolicitacao == null) {
