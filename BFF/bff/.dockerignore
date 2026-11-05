@@ -1,4 +1,7 @@
 target/
+.git/
 .idea/
-*.iml
 .vscode/
+*.iml
+.env
+.env.*
