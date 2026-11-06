@@ -1,17 +1,4 @@
-async function chamar(url, opcoes = {}) {
-  const resposta = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opcoes
-  })
-
-  if (!resposta.ok) {
-    throw new Error(`Erro na requisição (HTTP ${resposta.status})`)
-  }
-
-  // DELETE volta sem corpo
-  const texto = await resposta.text()
-  return texto ? JSON.parse(texto) : null
-}
+import { requisicao as chamar } from './http.js'
 
 export function listarNecessidades(instituicaoId) {
   return chamar(`/api/instituicoes/${instituicaoId}/necessidades`)

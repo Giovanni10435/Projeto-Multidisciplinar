@@ -74,13 +74,12 @@ com seu próprio ID, e um gestor só pode administrar sua instituição. Uma
 conta desativada perde o acesso às operações protegidas mesmo com sessão já
 aberta. O cadastro já existente de abrigo ficou restrito a administradores.
 
-**Integração com BFF/frontend:** o BFF atual não encaminha sessão e CSRF entre
-o navegador e o backend. Para usar os endpoints protegidos através dele,
-será necessário encaminhar `Cookie`, `Set-Cookie` e o header CSRF, além de
-expor os endpoints de CSRF, sessão e horários. Isso não foi alterado nesta
-revisão por estar fora da pasta autorizada. Os fluxos foram testados diretamente
-na API do backend, não ponta a ponta no navegador. Não há fallback inseguro
-que permita executar uma operação apenas enviando IDs ou roles no JSON.
+**Integração com BFF/frontend:** o BFF agora encaminha o cookie de sessão,
+`Set-Cookie` e o header CSRF. O frontend obtém o token automaticamente,
+renova após login/logout e conecta as operações de necessidades, horários,
+candidaturas, doações e solicitações. O roteiro local com os três serviços
+está em `BFF/TESTE_LOCAL.md`. As verificações automatizadas de cada camada
+não substituem a validação completa pelo navegador e PostgreSQL real.
 
 ## Rotas e regras
 

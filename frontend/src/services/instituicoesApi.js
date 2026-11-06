@@ -1,3 +1,5 @@
+import { fetchComSessao } from './http.js'
+
 // Pega as insituições do banco para serem exibidas no mapa
 export async function buscarInstituicoes() {
     const resposta = await fetch('/api/abrigos')
@@ -65,7 +67,7 @@ export async function buscarInstituicoesProximas(latitude, longitude) {
 
 // Cadastra abrigo (cria a conta role=abrigo no backend)
 export async function cadastrarAbrigo(dados) {
-    const resposta = await fetch('/api/abrigos', {
+    const resposta = await fetchComSessao('/api/abrigos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dados)

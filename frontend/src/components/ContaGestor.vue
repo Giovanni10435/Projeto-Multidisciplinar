@@ -34,10 +34,11 @@
       </div>
 
       <!-- Abas -->
-      <div style="display: flex; gap: 8px; padding: 12px 24px 0; border-bottom: 1px solid #e2e8f0;">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px 0; border-bottom: 1px solid #e2e8f0;">
         <button type="button" @click="aba = 'perfil'" :style="estiloAba(aba === 'perfil')">🏠 Perfil</button>
         <button type="button" @click="aba = 'doacoes'" :style="estiloAba(aba === 'doacoes')">📦 Necessidades</button>
         <button type="button" @click="aba = 'voluntarios'" :style="estiloAba(aba === 'voluntarios')">🤝 Voluntários</button>
+        <button v-if="!somenteLeitura" type="button" @click="aba = 'solicitacoes'; carregarSolicitacoes()" :style="estiloAba(aba === 'solicitacoes')">Solicitações</button>
       </div>
 
       <div style="padding: 24px;">
@@ -189,7 +190,7 @@
             @submit.prevent="adicionarNecessidade"
             style="padding: 18px; margin-bottom: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px;"
           >
-            <div style="margin-bottom: 14px; font-size: 14px; font-weight: 800; color: #166534;">➕ Adicionar necessidade</div>
+            <div style="margin-bottom: 14px; font-size: 14px; font-weight: 800; color: #166534;">{{ necessidadeEmEdicao ? 'Editar necessidade' : '➕ Adicionar necessidade' }}</div>
 
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px;">
               <div>
@@ -205,10 +206,12 @@
             <div style="display: flex; justify-content: flex-end;">
               <button
                 type="submit"
+                :disabled="salvandoNec"
                 style="padding: 11px 24px; background: #15803d; color: white; font-size: 14px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;"
               >
-                Adicionar
+                {{ salvandoNec ? 'Salvando...' : (necessidadeEmEdicao ? 'Salvar alterações' : 'Adicionar') }}
               </button>
+              <button v-if="necessidadeEmEdicao" type="button" @click="cancelarEdicaoNecessidade" :style="estiloAcao">Cancelar</button>
             </div>
           </form>
 
@@ -232,6 +235,8 @@
                     {{ n.status }}
                   </span>
                 </div>
+                <button v-if="!somenteLeitura" type="button" @click="editarNecessidade(n)" :style="estiloAcao">Editar</button>
+                <button v-if="!somenteLeitura && n.status === 'ABERTA'" type="button" @click="encerrarNecessidade(n)" :style="estiloAcao">Encerrar</button>
                 <button v-if="!somenteLeitura" type="button" @click="excluirNecessidade(n.id)" aria-label="Remover necessidade" :style="estiloBotaoRemover">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
                     <path d="M6 6l12 12M18 6L6 18" />
@@ -242,6 +247,17 @@
               <div style="height: 8px; margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
                 <div :style="{ height: '100%', width: porcentagemNec(n) + '%', background: '#10b981', borderRadius: '999px' }"></div>
               </div>
+
+              <form v-if="somenteLeitura && n.status === 'ABERTA'" @submit.prevent="doar(n)" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px;">
+                <label :for="'doacao-' + n.id">Quantidade a doar:</label>
+                <input :id="'doacao-' + n.id" type="number" min="1" required :disabled="!voluntarioId"
+                  :value="quantidadesDoacao[n.id] ?? 1" @input="quantidadesDoacao[n.id] = $event.target.value"
+                  style="width: 70px; padding: 8px;" />
+                <button type="submit" :disabled="enviandoDoacao !== null" :style="estiloAcao">
+                  {{ voluntarioId ? (enviandoDoacao === n.id ? 'Enviando...' : 'Quero doar') : 'Entrar para doar' }}
+                </button>
+              </form>
+              <p v-if="mensagensDoacao[n.id]" role="status" style="font-size: 13px;">{{ mensagensDoacao[n.id] }}</p>
 
               <div v-if="!somenteLeitura" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #475569;">
                 Recebido:
@@ -262,7 +278,7 @@
         </div>
 
         <!-- ================= ABA VOLUNTÁRIOS ================= -->
-        <div v-else>
+        <div v-else-if="aba === 'voluntarios'">
           <p style="margin: 0 0 18px; font-size: 14px; color: #475569;">
             {{ somenteLeitura
               ? 'Veja os horários em que o abrigo precisa de voluntários.'
@@ -274,7 +290,7 @@
             @submit.prevent="adicionarHorario"
             style="padding: 18px; margin-bottom: 18px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px;"
           >
-            <div style="margin-bottom: 14px; font-size: 14px; font-weight: 800; color: #1e40af;">➕ Adicionar horário</div>
+            <div style="margin-bottom: 14px; font-size: 14px; font-weight: 800; color: #1e40af;">{{ horarioEmEdicao ? 'Editar horário' : '➕ Adicionar horário' }}</div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
               <div>
@@ -302,12 +318,22 @@
             <div style="display: flex; justify-content: flex-end;">
               <button
                 type="submit"
+                :disabled="salvandoHorario"
                 style="padding: 11px 24px; background: #1d4ed8; color: white; font-size: 14px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;"
               >
-                Adicionar
+                {{ salvandoHorario ? 'Salvando...' : (horarioEmEdicao ? 'Salvar horário' : 'Adicionar') }}
               </button>
+              <button v-if="horarioEmEdicao" type="button" @click="cancelarEdicaoHorario" :style="estiloAcao">Cancelar</button>
             </div>
           </form>
+
+          <div v-if="somenteLeitura && voluntarioId" style="display: grid; gap: 10px; margin-bottom: 16px;">
+            <label>Telefone (opcional)<input v-model="contatoVoluntario.telefone" maxlength="20" type="tel" :style="estiloInput" /></label>
+            <label>Disponibilidade (opcional)<input v-model="contatoVoluntario.disponibilidade" maxlength="255" :style="estiloInput" /></label>
+          </div>
+          <p v-if="erroHorario && somenteLeitura" role="alert" :style="estiloErroObj">{{ erroHorario }}</p>
+          <p v-if="carregandoHorarios" role="status">Carregando horários...</p>
+          <p v-if="mensagemVoluntariado" role="status">{{ mensagemVoluntariado }}</p>
 
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <div
@@ -326,12 +352,14 @@
               <button
                 v-if="somenteLeitura"
                 type="button"
-                @click="emit('voluntariar', { instituicaoId: instituicao.id, horario: h })"
+                @click="candidatarHorario(h)"
+                :disabled="enviandoCandidatura !== null"
                 style="padding: 8px 14px; background: #1d4ed8; color: white; font-size: 13px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer;"
               >
-                Quero ser voluntário
+                {{ enviandoCandidatura === h.id ? 'Enviando...' : (voluntarioId ? 'Quero ser voluntário' : 'Entrar para se candidatar') }}
               </button>
 
+              <button v-if="!somenteLeitura" type="button" @click="editarHorario(h)" :style="estiloAcao">Editar</button>
               <button v-if="!somenteLeitura" type="button" @click="removerHorario(h.id)" aria-label="Remover horário" :style="estiloBotaoRemover">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />
@@ -345,13 +373,32 @@
           </div>
         </div>
 
+        <div v-else-if="aba === 'solicitacoes' && !somenteLeitura">
+          <p>Gerencie as doações e candidaturas recebidas pelo seu abrigo.</p>
+          <button type="button" @click="carregarSolicitacoes" :style="estiloAcao">Atualizar lista</button>
+          <p v-if="erroSolicitacoes" role="alert" :style="estiloErroObj">{{ erroSolicitacoes }}</p>
+          <p v-if="carregandoSolicitacoes" role="status">Carregando solicitações...</p>
+          <p v-if="!carregandoSolicitacoes && !solicitacoes.length">Nenhuma solicitação recebida.</p>
+          <article v-for="item in solicitacoes" :key="item.tipo + '-' + item.id" :style="estiloCard" style="margin-top: 12px;">
+            <strong>{{ item.tipo === 'DOACAO' ? 'Doação' : 'Voluntariado' }} — {{ item.voluntarioNome }}</strong>
+            <p>Status: {{ item.status }} · {{ item.data }}</p>
+            <p v-if="item.tipo === 'DOACAO'">{{ item.quantidade }} × {{ item.necessidadeDescricao }}</p>
+            <p v-if="item.horarioId">Horário escolhido: {{ descricaoHorario(item.horarioId) }}</p>
+            <p v-if="item.voluntarioTelefone">Telefone: {{ item.voluntarioTelefone }}</p>
+            <p v-if="item.voluntarioDisponibilidade">Disponibilidade: {{ item.voluntarioDisponibilidade }}</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <button v-for="acao in acoesSolicitacao(item)" :key="acao.status" type="button"
+                :disabled="atualizandoSolicitacao !== null" @click="alterarSolicitacao(item, acao.status)" :style="estiloAcao">{{ acao.texto }}</button>
+            </div>
+          </article>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { calcularCorOcupacao } from '../data'
 import {
   listarNecessidades,
@@ -359,19 +406,22 @@ import {
   atualizarNecessidade,
   removerNecessidade
 } from '../services/necessidadesApi'
+import * as participacoes from '../services/participacoesApi.js'
 
 const props = defineProps({
   instituicao: { type: Object, required: true },
   // true = visitante: só visualiza (sem editar, sem remover, sem sair)
-  somenteLeitura: { type: Boolean, default: false }
+  somenteLeitura: { type: Boolean, default: false },
+  voluntarioId: { type: Number, default: null }
 })
 
-const emit = defineEmits(['close', 'atualizar', 'sair', 'voluntariar'])
+const emit = defineEmits(['close', 'atualizar', 'sair', 'voluntariar', 'solicitarLogin'])
 
 const aba = ref('perfil')
 const modoPerfil = ref('ver')
 const erro = ref('')
 const erroHorario = ref('')
+const estiloAcao = 'padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #1d4ed8; cursor: pointer;'
 
 /* ---------- Estilos ---------- */
 const estiloLabel = 'display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; color: #1e293b;'
@@ -394,10 +444,6 @@ function estiloAba(ativa) {
 function atualizar(campos) {
   if (props.somenteLeitura) return
   emit('atualizar', campos)
-}
-
-function novoId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
 /* ---------- Perfil ---------- */
@@ -471,6 +517,8 @@ const necessidades = ref([])
 const carregandoNec = ref(false)
 const erroNec = ref('')
 const novaNec = reactive({ descricao: '', quantidade: 1 })
+const necessidadeEmEdicao = ref(null)
+const salvandoNec = ref(false)
 
 // Visitante só vê as abertas; o gestor vê todas
 const necessidadesVisiveis = computed(() =>
@@ -490,7 +538,7 @@ async function carregarNecessidades() {
   try {
     necessidades.value = await listarNecessidades(props.instituicao.id)
   } catch (e) {
-    erroNec.value = 'Não foi possível carregar as necessidades.'
+    erroNec.value = e.message || 'Não foi possível carregar as necessidades.'
     console.error(e)
   } finally {
     carregandoNec.value = false
@@ -498,19 +546,23 @@ async function carregarNecessidades() {
 }
 
 async function adicionarNecessidade() {
-  if (props.somenteLeitura) return
+  if (props.somenteLeitura || salvandoNec.value) return
   erroNec.value = ''
+  salvandoNec.value = true
   try {
-    await criarNecessidade(props.instituicao.id, {
-      descricao: novaNec.descricao.trim(),
-      quantidadeSolicitada: Number(novaNec.quantidade)
-    })
-    novaNec.descricao = ''
-    novaNec.quantidade = 1
+    const dados = { descricao: novaNec.descricao.trim(), quantidadeSolicitada: Number(novaNec.quantidade) }
+    if (necessidadeEmEdicao.value) {
+      await atualizarNecessidade(props.instituicao.id, necessidadeEmEdicao.value, dados)
+    } else {
+      await criarNecessidade(props.instituicao.id, dados)
+    }
+    cancelarEdicaoNecessidade()
     await carregarNecessidades()
   } catch (e) {
-    erroNec.value = 'Não foi possível adicionar a necessidade.'
+    erroNec.value = e.message || 'Não foi possível adicionar a necessidade.'
     console.error(e)
+  } finally {
+    salvandoNec.value = false
   }
 }
 
@@ -530,7 +582,7 @@ async function salvarRecebida(n, valor) {
     })
     await carregarNecessidades()
   } catch (e) {
-    erroNec.value = 'Não foi possível atualizar a necessidade.'
+    erroNec.value = e.message || 'Não foi possível atualizar a necessidade.'
     console.error(e)
   }
 }
@@ -542,17 +594,64 @@ async function excluirNecessidade(id) {
     await removerNecessidade(props.instituicao.id, id)
     await carregarNecessidades()
   } catch (e) {
-    erroNec.value = 'Não foi possível remover a necessidade.'
+    erroNec.value = e.message || 'Não foi possível remover a necessidade.'
     console.error(e)
   }
 }
 
-onMounted(carregarNecessidades)
+function editarNecessidade(n) {
+  necessidadeEmEdicao.value = n.id
+  Object.assign(novaNec, { descricao: n.descricao, quantidade: n.quantidadeSolicitada })
+}
+
+function cancelarEdicaoNecessidade() {
+  necessidadeEmEdicao.value = null
+  Object.assign(novaNec, { descricao: '', quantidade: 1 })
+}
+
+async function encerrarNecessidade(n) {
+  if (props.somenteLeitura) return
+  try {
+    await atualizarNecessidade(props.instituicao.id, n.id, { status: 'ENCERRADA' })
+    await carregarNecessidades()
+  } catch (e) {
+    erroNec.value = e.message
+  }
+}
+
+const quantidadesDoacao = reactive({})
+const mensagensDoacao = reactive({})
+const enviandoDoacao = ref(null)
+async function doar(n) {
+  if (!props.voluntarioId) { emit('solicitarLogin'); return }
+  if (enviandoDoacao.value !== null) return
+  const quantidade = Number(quantidadesDoacao[n.id] ?? 1)
+  if (!Number.isInteger(quantidade) || quantidade < 1) {
+    mensagensDoacao[n.id] = 'Informe uma quantidade inteira maior que zero.'
+    return
+  }
+  enviandoDoacao.value = n.id
+  mensagensDoacao[n.id] = ''
+  try {
+    await participacoes.realizarDoacao({ voluntarioId: props.voluntarioId, necessidadeId: n.id, quantidade })
+    mensagensDoacao[n.id] = 'Doação registrada! Aguarde a confirmação do abrigo.'
+  } catch (e) {
+    mensagensDoacao[n.id] = e.message
+  } finally {
+    enviandoDoacao.value = null
+  }
+}
 
 /* ---------- Voluntários ---------- */
 const DIAS = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
 const novoHorario = reactive({ dia: 'Segunda-feira', funcao: '', inicio: '08:00', fim: '12:00' })
-const horarios = computed(() => props.instituicao.horarios_voluntarios ?? [])
+const horarios = ref([])
+const carregandoHorarios = ref(false)
+const horarioEmEdicao = ref(null)
+const salvandoHorario = ref(false)
+const contatoVoluntario = reactive({ telefone: '', disponibilidade: '' })
+const enviandoCandidatura = ref(null)
+const mensagemVoluntariado = ref('')
 // Ordena por dia da semana e depois pelo horário de início
 const horariosOrdenados = computed(() =>
   [...horarios.value].sort(
@@ -560,26 +659,141 @@ const horariosOrdenados = computed(() =>
   )
 )
 
-function adicionarHorario() {
+async function carregarHorarios() {
+  carregandoHorarios.value = true
+  erroHorario.value = ''
+  try {
+    horarios.value = await participacoes.listarHorarios(props.instituicao.id)
+  } catch (e) {
+    erroHorario.value = e.message
+  } finally {
+    carregandoHorarios.value = false
+  }
+}
+
+function editarHorario(h) {
+  if (props.somenteLeitura) return
+  horarioEmEdicao.value = h.id
+  Object.assign(novoHorario, { dia: h.dia, funcao: h.funcao, inicio: h.inicio.slice(0, 5), fim: h.fim.slice(0, 5) })
+}
+
+function cancelarEdicaoHorario() {
+  horarioEmEdicao.value = null
+  Object.assign(novoHorario, { dia: 'Segunda-feira', funcao: '', inicio: '08:00', fim: '12:00' })
+}
+
+async function adicionarHorario() {
+  if (props.somenteLeitura || salvandoHorario.value) return
   erroHorario.value = ''
   const funcao = novoHorario.funcao.trim()
   if (!funcao) return
-
   if (novoHorario.fim <= novoHorario.inicio) {
     erroHorario.value = 'O horário de fim precisa ser depois do início.'
     return
   }
-
-  atualizar({
-    horarios_voluntarios: [
-      ...horarios.value,
-      { id: novoId(), dia: novoHorario.dia, funcao, inicio: novoHorario.inicio, fim: novoHorario.fim }
-    ]
-  })
-  novoHorario.funcao = ''
+  salvandoHorario.value = true
+  try {
+    const dados = { ...novoHorario, funcao }
+    if (horarioEmEdicao.value) {
+      await participacoes.atualizarHorario(props.instituicao.id, horarioEmEdicao.value, dados)
+    } else {
+      await participacoes.criarHorario(props.instituicao.id, dados)
+    }
+    cancelarEdicaoHorario()
+    await carregarHorarios()
+  } catch (e) {
+    erroHorario.value = e.message
+  } finally {
+    salvandoHorario.value = false
+  }
 }
 
-function removerHorario(id) {
-  atualizar({ horarios_voluntarios: horarios.value.filter(h => h.id !== id) })
+async function removerHorario(id) {
+  if (props.somenteLeitura) return
+  try {
+    await participacoes.removerHorario(props.instituicao.id, id)
+    if (horarioEmEdicao.value === id) cancelarEdicaoHorario()
+    await carregarHorarios()
+  } catch (e) {
+    erroHorario.value = e.message
+  }
 }
+
+async function candidatarHorario(h) {
+  if (!props.voluntarioId) { emit('solicitarLogin'); return }
+  if (enviandoCandidatura.value !== null) return
+  enviandoCandidatura.value = h.id
+  mensagemVoluntariado.value = ''
+  try {
+    await participacoes.candidatarVoluntario(props.instituicao.id, {
+      voluntarioId: props.voluntarioId, horarioId: h.id, ...contatoVoluntario
+    })
+    mensagemVoluntariado.value = 'Candidatura enviada! Aguarde a resposta do abrigo.'
+    emit('voluntariar', { instituicaoId: props.instituicao.id, horario: h })
+  } catch (e) {
+    mensagemVoluntariado.value = e.message
+  } finally {
+    enviandoCandidatura.value = null
+  }
+}
+
+const solicitacoes = ref([])
+const carregandoSolicitacoes = ref(false)
+const erroSolicitacoes = ref('')
+const atualizandoSolicitacao = ref(null)
+
+async function carregarSolicitacoes() {
+  if (props.somenteLeitura) return
+  carregandoSolicitacoes.value = true
+  erroSolicitacoes.value = ''
+  try {
+    solicitacoes.value = await participacoes.listarSolicitacoes(props.instituicao.id)
+  } catch (e) {
+    erroSolicitacoes.value = e.message
+  } finally {
+    carregandoSolicitacoes.value = false
+  }
+}
+
+function descricaoHorario(id) {
+  const horario = horarios.value.find(h => h.id === id)
+  return horario
+    ? `${horario.dia}, ${horario.inicio.slice(0, 5)} às ${horario.fim.slice(0, 5)} — ${horario.funcao}`
+    : 'Este horário foi removido do cadastro.'
+}
+
+function acoesSolicitacao(item) {
+  const mapas = item.tipo === 'DOACAO' ? {
+    PENDENTE: [['CONFIRMADA', 'Confirmar'], ['CANCELADA', 'Recusar']],
+    CONFIRMADA: [['ENTREGUE', 'Registrar entrega'], ['CANCELADA', 'Cancelar']]
+  } : {
+    PENDENTE: [['APROVADO', 'Aprovar'], ['RECUSADO', 'Recusar']],
+    APROVADO: [['EM_ANDAMENTO', 'Iniciar'], ['CANCELADO', 'Cancelar']],
+    EM_ANDAMENTO: [['FINALIZADO', 'Concluir'], ['CANCELADO', 'Cancelar']]
+  }
+  return (mapas[item.status] || []).map(([status, texto]) => ({ status, texto }))
+}
+
+async function alterarSolicitacao(item, status) {
+  if (props.somenteLeitura || atualizandoSolicitacao.value !== null) return
+  atualizandoSolicitacao.value = item.tipo + '-' + item.id
+  erroSolicitacoes.value = ''
+  try {
+    await participacoes.atualizarSolicitacao(props.instituicao.id, item.id, { tipo: item.tipo, status })
+    await Promise.all([carregarSolicitacoes(), carregarNecessidades()])
+  } catch (e) {
+    erroSolicitacoes.value = e.message
+  } finally {
+    atualizandoSolicitacao.value = null
+  }
+}
+
+watch(() => props.instituicao.id, () => {
+  cancelarEdicaoNecessidade()
+  cancelarEdicaoHorario()
+  mensagemVoluntariado.value = ''
+  carregarNecessidades()
+  carregarHorarios()
+  if (!props.somenteLeitura) carregarSolicitacoes()
+}, { immediate: true })
 </script>

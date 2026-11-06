@@ -212,7 +212,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { cadastrarVoluntario, loginVoluntario } from '../services/voluntarioApi'
+import { cadastrarVoluntario, loginVoluntario, sairDaSessao } from '../services/voluntarioApi'
 import { cadastrarAbrigo } from '../services/instituicoesApi'
 
 const emit = defineEmits(['select', 'submitInstituicao', 'usuarioAutenticado', 'gestorAutenticado', 'close'])
@@ -324,6 +324,7 @@ async function entrar() {
       })
 
       if (resultado.role !== 'usuario') {
+        await sairDaSessao()
         erro.value = 'Esta conta não é de usuário/voluntário.'
         return
       }
@@ -349,6 +350,7 @@ async function entrar() {
     })
 
     if (resultado.role !== 'abrigo') {
+      await sairDaSessao()
       erro.value = 'Esta conta não é de abrigo/gestor.'
       return
     }

@@ -26,6 +26,8 @@
       v-if="abrigoInfo"
       :instituicao="abrigoInfo"
       somente-leitura
+      :voluntario-id="contaUsuarioId"
+      @solicitar-login="solicitarLoginParaParticipar"
       @close="abrigoInfoId = null"
     />
 
@@ -295,7 +297,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { LMap, LTileLayer, LMarker, LPopup, LControlZoom } from '@vue-leaflet/vue-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -305,6 +307,7 @@ import ContaUsuario from './components/ContaUsuario.vue'
 import ContaGestor from './components/ContaGestor.vue'
 import Cabecalho from './components/Cabecalho.vue'
 import { atualizarPerfil } from './auth'
+import { consultarSessao, sairDaSessao } from './services/voluntarioApi.js'
 
 // Teste de conexão entre front -> bff -> backend para solicitar lista de abrigos e construir mapa:
 import { 
@@ -354,6 +357,22 @@ onMounted(async() => {
     instituicoes.value = [...INSTITUICOES_INIT]
   }
 })
+
+onMounted(async () => {
+  window.addEventListener('sessao-expirada', sessaoExpirada)
+  try {
+    const sessao = await consultarSessao()
+    if (sessao?.role === 'usuario') {
+      usuarioAutenticado({ id: sessao.id, perfil: { nome: sessao.nome, email: sessao.email }, novo: false })
+    } else if (sessao?.role === 'abrigo' && sessao.instituicaoId) {
+      contaGestorId.value = sessao.id
+      instituicaoGestorId.value = sessao.instituicaoId
+    }
+  } catch (erro) {
+    console.error('Não foi possível restaurar a sessão:', erro)
+  }
+})
+onUnmounted(() => window.removeEventListener('sessao-expirada', sessaoExpirada))
 
 const instituicoesFiltradas = computed(() => {
   const q = termoBusca.value.toLowerCase().trim()
@@ -542,14 +561,43 @@ function salvarPerfil(dados) {
   if (contaUsuarioId.value !== null) atualizarPerfil(contaUsuarioId.value, dados)
 }
 
-function sairDaConta() {
+function limparSessaoLocal() {
   perfilUsuario.value = null
   contaUsuarioId.value = null
   exibirMinhaConta.value = false
+  contaGestorId.value = null
+  instituicaoGestorId.value = null
+  exibirContaGestor.value = false
+}
+
+function solicitarLoginParaParticipar() {
+  abrigoInfoId.value = null
+  exibirModalRole.value = true
+}
+
+function sessaoExpirada() {
+  limparSessaoLocal()
+  solicitarLoginParaParticipar()
+}
+
+let encerrandoSessao = false
+async function sairDaConta() {
+  if (encerrandoSessao) return
+  encerrandoSessao = true
+  try {
+    await sairDaSessao()
+    limparSessaoLocal()
+  } catch (erro) {
+    if (erro.status === 401) limparSessaoLocal()
+    else alert(erro.message || 'Não foi possível sair da conta. Tente novamente.')
+  } finally {
+    encerrandoSessao = false
+  }
 }
 
 // Chamado quando o usuário faz login (novo = false) ou cria a conta (novo = true)
 function usuarioAutenticado({ id, perfil, novo }) {
+  limparSessaoLocal()
   contaUsuarioId.value = id
   perfilUsuario.value = perfil
   exibirModalRole.value = false
@@ -558,6 +606,7 @@ function usuarioAutenticado({ id, perfil, novo }) {
 
 // Chamado quando o gestor faz login
 async function gestorAutenticado({ id, instituicaoId }) {
+  limparSessaoLocal()
   contaGestorId.value = id
   instituicaoGestorId.value = instituicaoId
   exibirModalRole.value = false
@@ -585,9 +634,7 @@ function atualizarInstituicao(id, campos) {
 }
 
 function sairGestor() {
-  contaGestorId.value = null
-  instituicaoGestorId.value = null
-  exibirContaGestor.value = false
+  return sairDaConta()
 }
 
 function registrarPesquisa() {

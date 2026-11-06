@@ -39,7 +39,7 @@ public class UserController {
         @PathVariable Integer instituicaoId,
         @RequestBody Map<String, Object> voluntariadoDados
     ) {
-        voluntariadoDados.put("insituicao_id", instituicaoId);
+        voluntariadoDados.put("instituicao_id", instituicaoId);
         return userService.interesseVoluntario(voluntariadoDados);
     }
 
