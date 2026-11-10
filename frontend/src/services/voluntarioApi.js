@@ -1,5 +1,7 @@
+import { fetchComSessao, requisicao } from './http.js'
+
 export async function cadastrarVoluntario(dados) {
-    const resposta = await fetch('/api/voluntarios', {
+    const resposta = await fetchComSessao('/api/voluntarios', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -28,7 +30,7 @@ export async function cadastrarVoluntario(dados) {
 }
 
 export async function loginVoluntario(dados) {
-  const resposta = await fetch('/api/auth/login', {
+  const resposta = await fetchComSessao('/api/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -55,4 +57,17 @@ export async function loginVoluntario(dados) {
   }
 
   return resposta.json()
+}
+
+export async function consultarSessao() {
+  try {
+    return await requisicao('/api/auth/me')
+  } catch (erro) {
+    if (erro.status === 401 || erro.status === 403) return null
+    throw erro
+  }
+}
+
+export function sairDaSessao() {
+  return requisicao('/api/auth/logout', { method: 'POST' })
 }

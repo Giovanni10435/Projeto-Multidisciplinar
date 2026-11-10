@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +30,7 @@ public class NecessidadeController {
 
     // UC09: Criar Necessidade (mesma rota do BFF)
     @PostMapping("/{instituicaoId}/necessidades")
+    @PreAuthorize("@acesso.abrigo(authentication, #instituicaoId)")
     public ResponseEntity<NecessidadeResponse> cadastrarNecessidade(
             @PathVariable Integer instituicaoId,
             @RequestBody NecessidadeRequest necessidadeDados) {
@@ -40,6 +42,7 @@ public class NecessidadeController {
 
     // UC10: Atualizar Necessidade
     @PutMapping("/{instituicaoId}/necessidades/{necessidadeId}")
+    @PreAuthorize("@acesso.abrigo(authentication, #instituicaoId)")
     public NecessidadeResponse atualizarNecessidade(
             @PathVariable Integer instituicaoId,
             @PathVariable Integer necessidadeId,
@@ -49,6 +52,7 @@ public class NecessidadeController {
 
     // Remover necessidade
     @DeleteMapping("/{instituicaoId}/necessidades/{necessidadeId}")
+    @PreAuthorize("@acesso.abrigo(authentication, #instituicaoId)")
     public ResponseEntity<Void> removerNecessidade(
             @PathVariable Integer instituicaoId,
             @PathVariable Integer necessidadeId) {

@@ -38,7 +38,7 @@ public class Conta {
     @Column(name = "senha_hash")
     private String senhaHash;
 
-    // admin | abrigo | usuario (só dado por enquanto: nenhum acesso é controlado por role)
+    // admin | abrigo | usuario; autorizacao aplicada nos controllers.
     @Column(nullable = false, length = 20)
     private String role;
 

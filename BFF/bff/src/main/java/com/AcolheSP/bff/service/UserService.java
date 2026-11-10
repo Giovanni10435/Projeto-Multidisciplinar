@@ -62,6 +62,8 @@ public class UserService {
                 new TypeReference<Map<String, Object>>() {}
             )
         );
+        // Credenciais precisam permanecer identicas no cadastro e no login.
+        dadosLimpos.put("senha", dados.senha());
 
         return backendWebClient
             .post()

@@ -20,7 +20,16 @@ public record SolicitacaoResponse(
         String necessidadeDescricao,
         Integer quantidade,
         LocalDate dataInicio,
-        LocalDate dataFim) {
+        LocalDate dataFim,
+        Integer horarioId) {
+
+    public SolicitacaoResponse(Integer id, String tipo, String status, LocalDate data,
+            Integer voluntarioId, String voluntarioNome, String voluntarioTelefone,
+            String voluntarioDisponibilidade, Integer necessidadeId, String necessidadeDescricao,
+            Integer quantidade, LocalDate dataInicio, LocalDate dataFim) {
+        this(id, tipo, status, data, voluntarioId, voluntarioNome, voluntarioTelefone,
+                voluntarioDisponibilidade, necessidadeId, necessidadeDescricao, quantidade, dataInicio, dataFim, null);
+    }
 
     public static SolicitacaoResponse de(Doacao d) {
         Voluntario v = d.getVoluntario();
@@ -37,6 +46,6 @@ public record SolicitacaoResponse(
                 vt.getId(), "VOLUNTARIADO", vt.getStatus().name(), vt.getDataSolicitacao(),
                 v.getId(), v.getNome(), v.getTelefone(), v.getDisponibilidade(),
                 null, null, null,
-                vt.getDataInicio(), vt.getDataFim());
+                vt.getDataInicio(), vt.getDataFim(), vt.getHorario() == null ? null : vt.getHorario().getId());
     }
 }

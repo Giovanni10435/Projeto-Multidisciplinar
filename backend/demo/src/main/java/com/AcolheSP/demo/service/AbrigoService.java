@@ -1,5 +1,7 @@
 package com.AcolheSP.demo.service;
 
+import java.util.Locale;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -69,7 +71,7 @@ public class AbrigoService {
             );
         }
 
-        if (temEmail && contaRepo.existsByEmail(email)) {
+        if (temEmail && contaRepo.existsByEmailIgnoreCase(email)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Já existe uma conta com esse email"
@@ -87,7 +89,7 @@ public class AbrigoService {
         // Cria e vincula uma conta somente quando há credenciais.
         if (temEmail) {
             var conta = new Conta();
-            conta.setEmail(email);
+            conta.setEmail(email.trim().toLowerCase(Locale.ROOT));
             conta.setSenhaHash(
                     passwordHasher.hashDaNovaSenha(req.senha())
             );

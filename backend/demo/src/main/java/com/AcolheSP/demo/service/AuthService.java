@@ -34,7 +34,7 @@ public class AuthService {
         }
 
         // Mesma resposta pra email inexistente, conta sem senha e senha errada
-        Conta conta = contaRepo.findByEmail(req.email().trim())
+        Conta conta = contaRepo.findByEmailIgnoreCase(req.email().trim())
                 .orElseThrow(AuthService::credenciaisInvalidas);
 
         if (!passwordHasher.confere(req.senha(), conta.getSenhaHash())) {
@@ -47,7 +47,17 @@ public class AuthService {
         
         var instituicao = instituicaoRepo.findByConta_Id(conta.getId()).orElse(null);
 
+        if ("abrigo".equals(conta.getRole()) && instituicao == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Conta de abrigo sem instituição vinculada");
+        }
         return LoginResponse.de(conta, instituicao);
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponse buscarConta(Integer id) {
+        Conta conta = contaRepo.findById(id).filter(Conta::isAtivo)
+                .orElseThrow(AuthService::credenciaisInvalidas);
+        return LoginResponse.de(conta, instituicaoRepo.findByConta_Id(id).orElse(null));
     }
 
     private static ResponseStatusException credenciaisInvalidas() {

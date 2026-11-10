@@ -20,7 +20,11 @@ public class PasswordHasher {
         if (senha == null || hash == null || hash.isBlank()) {
             return false;
         }
-        return BCrypt.verifyer().verify(senha.toCharArray(), hash).verified;
+        try {
+            return BCrypt.verifyer().verify(senha.toCharArray(), hash).verified;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     // Senha opcional no cadastro: vazia -> null (conta sem login). Se vier, mínimo 6 caracteres.
@@ -31,6 +35,9 @@ public class PasswordHasher {
         if (senha.length() < TAMANHO_MINIMO) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "senha deve ter ao menos " + TAMANHO_MINIMO + " caracteres");
+        }
+        if (senha.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "senha deve ter no máximo 72 bytes UTF-8");
         }
         return gerarHash(senha);
     }

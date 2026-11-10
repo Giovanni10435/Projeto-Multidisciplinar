@@ -15,6 +15,7 @@ public class WebClientConfig {
     public WebClient backendWebClient() {
             return WebClient.builder()
                 .baseUrl(backendUrl)
+                .filter(BackendSessionRelay.forwardingFilter())
                 .build();
         }
 }

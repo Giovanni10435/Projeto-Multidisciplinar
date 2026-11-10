@@ -3,6 +3,7 @@ package com.AcolheSP.demo.controller;
 import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ public class VoluntarioController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@acesso.voluntario(authentication, #id)")
     public VoluntarioResponse buscar(@PathVariable Integer id) {
         return voluntarioService.buscar(id);
     }

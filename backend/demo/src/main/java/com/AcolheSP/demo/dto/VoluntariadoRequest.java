@@ -12,5 +12,10 @@ public record VoluntariadoRequest(
         @JsonAlias("data_inicio") LocalDate dataInicio,
         @JsonAlias("data_fim") LocalDate dataFim,
         String telefone,
-        String disponibilidade) {
+        String disponibilidade,
+        @JsonAlias("horario_id") Integer horarioId) {
+    public VoluntariadoRequest(Integer voluntarioId, LocalDate dataInicio, LocalDate dataFim,
+            String telefone, String disponibilidade) {
+        this(voluntarioId, dataInicio, dataFim, telefone, disponibilidade, null);
+    }
 }
