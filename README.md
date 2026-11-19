@@ -851,7 +851,7 @@ Para rodar, deve primeiramente, acessar o Link do Backend, BFF e do Frontend par
 - Frontend: https://acolhesp-frontend-yvvk.onrender.com/
 - Backend: https://acolhesp-backend-9acx.onrender.com/api/abrigos
 - BFF: https://acolhesp-tj9p.onrender.com/api/abrigos
-- Vídeo de demonstração: [PREENCHER: URL];
+- Vídeo de demonstração: https://youtu.be/2bIzSLRmYJo;
 
 O vídeo apresenta a aplicação no endereço de produção e demonstra as funcionalidades concluídas.
 
@@ -890,7 +890,3 @@ Também seria necessário estabelecer procedimentos para manter as informações
 - João Vitor Garcia Aguiar Mintz
 - Giovanni Barreiro Garitano de Castro
 - Yan Andreotti dos Santos
-
-## Link apresentação do projeto
-
-- https://youtu.be/2bIzSLRmYJo
